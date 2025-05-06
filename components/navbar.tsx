@@ -1,28 +1,25 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
-
-import { supabase } from '@/lib/supabaseClient'; // Adjust the import based on your project structure
-
-import LogoutButton from './LogoutButton';
+'use client'
+import React, { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabaseClient'
+import LogoutButton from './LogoutButton'
+import { useUserStore } from '@/store/useUserStore'
+import { useUIStore } from '@/store/useUIStore'
+import Link from 'next/link'
 
 const Navbar = () => {
-  const [openProfile, setOpenProfile] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [openProfile, setOpenProfile] = useState(false)
+  const toggleChatbot = useUIStore((state) => state.toggleChatbot)
 
-  // Fetch user data on component mount
-  useEffect(() => {
-    const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-    };
 
-    fetchUser();
-  }, []);
+  const { user} = useUserStore()
+
+
 
   return (
     <nav className="w-full px-6 py-4 flex items-center justify-between shadow-md bg-white text-black relative">
-      <div className="text-2xl font-bold tracking-wide">synaps</div>
+      <Link href="/dashboard">
+        <div className="text-2xl font-bold tracking-wide">synaps</div>
+      </Link>
 
       <div className="flex items-center gap-4 relative">
         <input
@@ -31,44 +28,68 @@ const Navbar = () => {
           className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
 
-        {/* Profile Button */}
         <div className="relative">
           <button
             onClick={() => setOpenProfile((prev) => !prev)}
-            className="flex items-center gap-2 "
+            className="flex items-center gap-2 focus:outline-none"
           >
-            {/* Display user's Gmail profile image if available */}
-            {user?.user_metadata?.avatar_url ? (
+            {user?.avatar_url ? (
               <img
-                src={user.user_metadata.avatar_url}
+                src={user.avatar_url}
                 alt="Profile"
-                className="w-8 h-8 rounded-full"
+                className="w-8 h-8 rounded-full border border-gray-300 object-cover"
               />
             ) : (
-              <span className="text-xl">{user?.email?.charAt(0).toUpperCase()}</span>
+                <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-700 font-bold">
+                    {user?.email?.charAt(0).toUpperCase()}
+                </div>
             )}
- 
           </button>
 
-          {/* Dropdown Menu */}
           {openProfile && (
-            <div className="absolute right-0 mt-2 w-40 bg-white border rounded shadow-md z-10">
-              <ul className="py-1 text-sm text-gray-700">
-                <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer">My Account</li>
-                <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer">Settings</li>
-                <LogoutButton /> {/* Logout button component */}
+            <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-10">
+              <ul className="py-2 text-sm text-gray-700">
+                <li>
+                  <Link
+                    href="/dashboard"
+                    className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 transition-colors duration-150"
+                  >
+                    Dashboard
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/dashboard/account"
+                    className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 transition-colors duration-150"
+                  >
+                    Account
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/dashboard/settings"
+                    className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 transition-colors duration-150"
+                  >
+                    Settings
+                  </Link>
+                </li>
+                <li>
+                  <LogoutButton />
+                </li>
               </ul>
             </div>
           )}
         </div>
 
-        {/* Chat Button */}
-        <button className="cursor-pointer hover:underline text-sm text-gray-600">
-          <p>Chat</p>
+        <button
+          onClick={toggleChatbot}
+          className="cursor-pointer hover:underline text-sm text-gray-600"
+        >
+          <p>C</p>
         </button>
       </div>
     </nav>
-  );
-};
+  )
+}
 
-export default Navbar;
+export default Navbar

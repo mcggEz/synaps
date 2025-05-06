@@ -28,17 +28,16 @@ const LogoutButton = () => {
   if (!isMounted) return null; // Avoid rendering the component until mounted
 
   return (
-    <div className="relative">
-   
+
    
 
-            <li
-              className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+            <div
+              className="px-4 py-2 hover:bg-gray-100 transition-colors duration-150 cursor-pointer"
               onClick={handleLogout}
             >
               Logout
-            </li>
-      </div>
+            </div>
+
   
   );
 };

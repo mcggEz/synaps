@@ -4,8 +4,10 @@ import React from 'react';
 import Navbar from '@/components/navbar';
 import Chatbot from '@/components/chatbot';
 import Sidenav from '@/components/sidenav';
+import { useUIStore } from '@/store/useUIStore';
 
 const Dashboard = () => {
+    const isChatbotOpen = useUIStore((state) => state.isChatbotOpen);
   return (
     <div className="h-screen flex flex-col">
       {/* Top Navbar */}
@@ -23,7 +25,7 @@ const Dashboard = () => {
         </main>
 
 
-       <Chatbot />
+        {isChatbotOpen && <Chatbot />}
       </div>
     </div>
   );
