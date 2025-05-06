@@ -19,9 +19,17 @@ export default function Chatbot() {
       const res = await axios.post('/api/gemini', { message: input });
       const botMessage: { sender: 'user' | 'bot'; text: string } = { sender: 'bot', text: res.data.text };
       setMessages(prev => [...prev, botMessage]);
-    } catch (error) {
-      setMessages(prev => [...prev, { sender: 'bot', text: 'Something went wrong.' }]);
-    } finally {
+    } catch (error: any) {
+      setMessages(prev => [
+        ...prev,
+        {
+          sender: 'bot',
+          text: `Error: ${error.message || 'Something went wrong.'}`,
+        },
+      ]);
+    }
+    
+    finally {
       setLoading(false);
     }
   };

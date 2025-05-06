@@ -13,8 +13,15 @@ const Sidenav = () => {
   const [projectData, setProjectData] = useState({ name: '', description: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [projects, setProjects] = useState<any[]>([]) // Add state for projects
-
+  const [projects, setProjects] = useState<Project[]>([]);
+  // Add state for projects
+  interface Project {
+    id: number;
+    name: string;
+    description: string;
+    // Add other relevant fields as needed
+  }
+  
 
   useEffect(() => {
     console.log(user); // Log the user object to check if it's correctly populated
@@ -56,7 +63,7 @@ const Sidenav = () => {
   const handleProjectClick = (projectId: number) => {
     const project = projects.find(p => p.id === projectId);
     if (project) {
-      setSelectedProject(project);
+      setSelectedProject({ ...project, id: project.id.toString() });
     } else {
       console.warn('Project not found:', projectId);
     }
@@ -105,9 +112,13 @@ const Sidenav = () => {
   
       setProjectData({ name: '', description: '' })
       setShowForm(false)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Request failed:', err)
-      setError('Unexpected error: ' + err.message)
+      if (err instanceof Error) {
+        setError('Unexpected error: ' + err.message);
+      } else {
+        setError('Unexpected error occurred.');
+      }
     } finally {
       setLoading(false)
     }

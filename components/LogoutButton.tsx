@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient'; // Adjust path as needed
 import { useRouter } from 'next/navigation'; // Adjusted for Next.js 13
-import { useUserStore } from '@/store/useUserStore'; // Adjust path as needed
+// Adjust path as needed
 const LogoutButton = () => {
 
   const [isMounted, setIsMounted] = useState(false); // Add state to track if component is mounted
