@@ -1,8 +1,9 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState , useEffect} from 'react'
 import { useUIStore } from '@/store/useUIStore'
 import { useUserStore } from '@/store/useUserStore'
+import { useProjectStore } from '@/store/useMainStore'
 
 const Sidenav = () => {
   const { isSidebarOpen, toggleSidebar } = useUIStore()
@@ -12,8 +13,54 @@ const Sidenav = () => {
   const [projectData, setProjectData] = useState({ name: '', description: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [projects, setProjects] = useState<any[]>([]) // Add state for projects
+
+
+  useEffect(() => {
+    console.log(user); // Log the user object to check if it's correctly populated
+  
+    if (user?.email) {
+      const fetchProjects = async () => {
+        try {
+          const response = await fetch('/api/read-projects', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              user_email: user.email,
+            }),
+          });
+  
+          if (!response.ok) {
+            const result = await response.json();
+            setError(result?.error || 'Failed to load projects.');
+            return;
+          }
+  
+          const data = await response.json();
+          setProjects(data);
+        } catch (err) {
+          setError('Unexpected error while fetching projects.');
+        }
+      };
+  
+      fetchProjects();
+    }
+  }, [user?.email]);
+  
 
   const handleShowForm = () => setShowForm(true)
+  const { setSelectedProject } = useProjectStore();
+
+  const handleProjectClick = (projectId: number) => {
+    const project = projects.find(p => p.id === projectId);
+    if (project) {
+      setSelectedProject(project);
+    } else {
+      console.warn('Project not found:', projectId);
+    }
+  };
 
   const handleCancel = () => {
     setShowForm(false)
@@ -34,7 +81,7 @@ const Sidenav = () => {
     setError(null)
   
     try {
-      const response = await fetch('/api/projects', {
+      const response = await fetch('/api/add-projects', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -65,7 +112,9 @@ const Sidenav = () => {
       setLoading(false)
     }
   }
-  
+  // fetch posts from supabase
+
+
 
   if (!isSidebarOpen) {
     return (
@@ -77,14 +126,38 @@ const Sidenav = () => {
     )
   }
 
+
+  
+
   return (
     <aside className="w-64 p-4 overflow-y-auto border-r bg-white">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Navigation</h2>
-        <button onClick={toggleSidebar} className="text-gray-500 hover:text-black">
+
+    
+      </div>
+
+      {/* fetch the projets from supabase  */}
+        {/* Render the list of projects */}
+        <div className="mb-4">
+        <h3 className="text-lg font-semibold">Your Projects</h3>    <button onClick={toggleSidebar} className="text-gray-500 hover:text-black">
           ×
         </button>
+        {projects.length === 0 ? (
+          <p>No projects found.</p>
+        ) : (
+          <ul className="space-y-2">
+            {projects.map((project) => (
+              <li key={project.id} className="border-b py-2"
+              onClick={() => handleProjectClick(project.id)}>
+                <div className="font-semibold">{project.name}</div>
+                <div className="text-sm text-gray-600">{project.description}</div>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
+
+
 
       {!showForm && (
         <button
