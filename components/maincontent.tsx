@@ -1,23 +1,160 @@
-import React from 'react'
+'use client'
+import React, { useState } from 'react'
+import Tasks from './tasks'
+import { useUserStore } from '@/store/useUserStore'
 import { useProjectStore } from '@/store/useMainStore'
-const MainContent = () => {
+import { useUIStore } from '@/store/useUIStore'
+import { useChatbotStore } from '@/store/useChatbotStore'
 
-    const { selectedProject } = useProjectStore()
+const MainContent = () => {
+  const { selectedProject, setSelectedProject, triggerProjectsRefresh } = useProjectStore()
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState(selectedProject?.name || '')
+  const [description, setDescription] = useState(selectedProject?.description || '')
+  const [loading, setLoading] = useState(false)
+  const { user } = useUserStore()
+  const toggleChatbot = useUIStore((state) => state.toggleChatbot)
+  const setInputTemplate = useChatbotStore((state) => state.setInputTemplate)
+
+  const handleSave = async () => {
+    if (!selectedProject || !user) return
+    setLoading(true)
+
+    const res = await fetch('/api/update-projects', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: selectedProject.id,
+        user_email: user.email, // ✅ Include user email
+        updateData: {
+          name,
+          description,
+        },
+      }),
+    })
+
+    if (res.ok) {
+      const updatedProject = {
+        ...selectedProject,
+        name,
+        description,
+      };
+      setSelectedProject(updatedProject);
+      triggerProjectsRefresh();
+      setEditing(false)
+    } else {
+      console.error('Update failed')
+    }
+
+    setLoading(false)
+  }
+
+  if (!selectedProject) {
+    return <p>Select a project to view details.</p>
+  }
+
   return (
-   <>
-      {selectedProject ? (
+    <>
+      <h1 className="text-3xl font-bold mb-4">Project:</h1>
+
+      {editing ? (
         <>
-            <h1 className="text-3xl font-bold mb-4">Project:</h1>
-          <h2 className="text-2xl font-bold"> {selectedProject.name}</h2>
-            <p className="text-gray-500 mb-2">Project Details</p>
-          <p className="text-gray-700">{selectedProject.description}</p>
-          {/* Render more project-specific details here */}
+          <input
+            className="text-2xl font-bold border px-2 py-1 w-full mb-2 rounded"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <p className="text-gray-500 mb-2">Project Details</p>
+          <textarea
+            className="text-gray-700 border px-2 py-1 w-full rounded"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={4}
+          />
+          <div className="mt-4 flex gap-2">
+            <button
+              onClick={handleSave}
+              className="bg-blue-600 text-white px-4 py-2 rounded"
+              disabled={loading}
+            >
+              {loading ? 'Saving...' : 'Save'}
+            </button>
+            <button
+              onClick={() => setEditing(false)}
+              className="bg-gray-300 text-black px-4 py-2 rounded"
+            >
+              Cancel
+            </button>
+          </div>
         </>
       ) : (
-        <p>Select a project to view details.</p>
+        <>
+          <h2 className="text-2xl font-bold">{selectedProject.name}</h2>
+          <p className="text-gray-500 mb-2">{selectedProject.description}</p>
+         
+          <button
+            onClick={() => {
+              setName(selectedProject.name)
+              setDescription(selectedProject.description)
+              setEditing(true)
+            }}
+            className="mt-4 bg-indigo-600 text-white px-4 py-2 rounded"
+          >
+            Edit
+          </button>
+   
+          <button
+            onClick={async () => {
+              if (!user || !selectedProject) return;
+              const res = await fetch('/api/delete-projects', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  id: selectedProject.id,
+                  user_email: user.email, // ✅ Include user email
+                }),
+              })
+
+              if (res.ok) {
+                setSelectedProject(null)
+                triggerProjectsRefresh();
+              } else {
+                console.error('Delete failed')
+              }
+            }
+            }
+            className="ml-2 bg-red-600 text-white px-4 py-2 rounded"
+          >
+            Delete
+
+          </button>
+          <button
+            onClick={() => {
+              // Create a template with project details
+              const template = `Help me create tasks for this project:
+Project ID: ${selectedProject.id}
+Project Name: ${selectedProject.name}
+Project Description: ${selectedProject.description}
+
+Please suggest some tasks that would be appropriate for this project.`;
+              
+              // Set the template in the store
+              setInputTemplate(template);
+              
+              // Toggle the chatbot
+              toggleChatbot();
+            }}
+            className="ml-2 bg-yellow-600 text-white px-4 py-2 rounded"
+          >
+            Ask Gemini
+          </button>
+          <Tasks  />
+        
+          
+        </>
       )}
-  
-</>
+      
+    </>
   )
 }
 

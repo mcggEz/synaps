@@ -8,6 +8,7 @@ import { useProjectStore } from '@/store/useMainStore'
 const Sidenav = () => {
   const { isSidebarOpen, toggleSidebar } = useUIStore()
   const { user } = useUserStore()
+  const { setSelectedProject, lastProjectsUpdate } = useProjectStore()
 
   const [showForm, setShowForm] = useState(false)
   const [projectData, setProjectData] = useState({ name: '', description: '' })
@@ -22,45 +23,49 @@ const Sidenav = () => {
     // Add other relevant fields as needed
   }
 
+  const fetchProjects = async () => {
+    if (user?.email) {
+      try {
+        const response = await fetch('/api/read-projects', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user_email: user.email,
+          }),
+        })
+
+        if (!response.ok) {
+          const result = await response.json()
+          setError(result?.error || 'Failed to load projects.')
+          setProjects([]) // Clear projects on error
+          return
+        }
+
+        const data = await response.json()
+        setProjects(data)
+        setError(null) // Clear previous errors on success
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          setError('Unexpected error: ' + err.message)
+        } else {
+          setError('Unexpected error occurred.')
+        }
+        setProjects([]) // Clear projects on error
+      }
+    } else {
+      setProjects([]) // Clear projects if no user email
+      setError(null)
+    }
+  }
+
   useEffect(() => {
     console.log(user) // Log the user object to check if it's correctly populated
-
-    if (user?.email) {
-      const fetchProjects = async () => {
-        try {
-          const response = await fetch('/api/read-projects', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              user_email: user.email,
-            }),
-          })
-
-          if (!response.ok) {
-            const result = await response.json()
-            setError(result?.error || 'Failed to load projects.')
-            return
-          }
-
-          const data = await response.json()
-          setProjects(data)
-        } catch (err: unknown) {
-          if (err instanceof Error) {
-            setError('Unexpected error: ' + err.message)
-          } else {
-            setError('Unexpected error occurred.')
-          }
-        }
-      }
-
-      fetchProjects()
-    }
-  }, [user?.email])
+    fetchProjects()
+  }, [user?.email, lastProjectsUpdate])
 
   const handleShowForm = () => setShowForm(true)
-  const { setSelectedProject } = useProjectStore()
 
   const handleProjectClick = (projectId: number) => {
     const project = projects.find((p) => p.id === projectId)
@@ -109,8 +114,7 @@ const Sidenav = () => {
         return
       }
 
-      alert('Project created successfully!')
-      console.log('Project created:', result)
+      await fetchProjects()
 
       setProjectData({ name: '', description: '' })
       setShowForm(false)
@@ -140,10 +144,13 @@ const Sidenav = () => {
       <div className="flex justify-between items-center mb-4"></div>
 
       <div className="mb-4">
-        <h3 className="text-lg font-semibold">Your Projects</h3>
+        <div className='flex justify-between items-center mb-4'>
+        <h3 className="text-lg font-semibold">Tasks</h3>
         <button onClick={toggleSidebar} className="text-gray-500 hover:text-black">
           ×
         </button>
+        </div>
+     
         {projects.length === 0 ? (
           <p>No projects found.</p>
         ) : (
@@ -151,11 +158,12 @@ const Sidenav = () => {
             {projects.map((project) => (
               <li
                 key={project.id}
-                className="border-b py-2"
+                className="border-b py-2 hover:bg-gray-100 cursor-pointer"
                 onClick={() => handleProjectClick(project.id)}
               >
                 <div className="font-semibold">{project.name}</div>
                 <div className="text-sm text-gray-600">{project.description}</div>
+                
               </li>
             ))}
           </ul>
