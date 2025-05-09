@@ -1,38 +1,34 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Chatbot with Gemini API
 
-## Getting Started
+This project is a conversational chatbot application that leverages the Gemini API to provide intelligent and context-aware responses. The chatbot is designed to handle user queries, maintain conversation context, and extract tasks from responses.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Contextual Conversations**: Maintains conversation history to provide context-aware responses.
+- **Task Extraction**: Automatically extracts tasks from the chatbot's responses.
+- **Project Integration**: Allows users to add extracted tasks to their projects.
+- **Responsive UI**: Built with a user-friendly interface for seamless interaction.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Technologies Used
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **React**: Frontend library for building the user interface.
+- **Next.js**: Framework for server-side rendering and API routes.
+- **Tailwind CSS**: Utility-first CSS framework for styling.
+- **Axios**: Promise-based HTTP client for making API requests.
+- **Gemini API**: Used for generating intelligent responses.
+- **Supabase**: For managing user sessions and data storage.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Usage
 
-## Learn More
+- **Chat with the Bot**: Type your message in the input field and press Enter or click Send.
+- **Extract Tasks**: If the response contains tasks, they will be displayed with an option to add them to your project.
+- **Add Tasks to Project**: Click the "Add These Tasks to Project" button to save tasks to your project.
 
-To learn more about Next.js, take a look at the following resources:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## License
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-## Deploy on Vercel
+## Contact
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
-# synaps
+For questions or feedback, please contact [your-email@example.com](mailto:your-email@example.com).
