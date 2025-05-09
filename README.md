@@ -1,4 +1,4 @@
-# Chatbot with Gemini API
+# synaps
 
 This project is a conversational chatbot application that leverages the Gemini API to provide intelligent and context-aware responses. The chatbot is designed to handle user queries, maintain conversation context, and extract tasks from responses.
 
