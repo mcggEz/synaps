@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Tasks from './tasks'
 import { useUserStore } from '@/store/useUserStore'
 import { useProjectStore } from '@/store/useMainStore'
@@ -9,12 +9,38 @@ import { useChatbotStore } from '@/store/useChatbotStore'
 const MainContent = () => {
   const { selectedProject, setSelectedProject, triggerProjectsRefresh } = useProjectStore()
   const [editing, setEditing] = useState(false)
-  const [name, setName] = useState(selectedProject?.name || '')
-  const [description, setDescription] = useState(selectedProject?.description || '')
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
   const [loading, setLoading] = useState(false)
+  const [isStoreHydrated, setIsStoreHydrated] = useState(false)
   const { user } = useUserStore()
   const toggleChatbot = useUIStore((state) => state.toggleChatbot)
   const setInputTemplate = useChatbotStore((state) => state.setInputTemplate)
+
+  useEffect(() => {
+    if (useProjectStore.persist.hasHydrated()) {
+      setIsStoreHydrated(true)
+    } else {
+      const unsubscribe = useProjectStore.persist.onFinishHydration(() => {
+        setIsStoreHydrated(true)
+      })
+      return () => {
+        unsubscribe()
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (selectedProject) {
+      setName(selectedProject.name || '')
+      setDescription(selectedProject.description || '')
+    } else {
+      setName('')
+      setDescription('')
+      setEditing(false)
+    }
+    setLoading(false)
+  }, [selectedProject])
 
   const handleSave = async () => {
     if (!selectedProject || !user) return
@@ -34,19 +60,21 @@ const MainContent = () => {
     })
 
     if (res.ok) {
-      const updatedProject = {
+      setSelectedProject({
         ...selectedProject,
         name,
         description,
-      };
-      setSelectedProject(updatedProject);
-      triggerProjectsRefresh();
+      })
       setEditing(false)
     } else {
       console.error('Update failed')
     }
 
     setLoading(false)
+  }
+
+  if (!isStoreHydrated) {
+    return <p>Loading project details...</p>
   }
 
   if (!selectedProject) {
@@ -105,7 +133,7 @@ const MainContent = () => {
    
           <button
             onClick={async () => {
-              if (!user || !selectedProject) return;
+              if (!user) return
               const res = await fetch('/api/delete-projects', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
@@ -117,7 +145,6 @@ const MainContent = () => {
 
               if (res.ok) {
                 setSelectedProject(null)
-                triggerProjectsRefresh();
               } else {
                 console.error('Delete failed')
               }

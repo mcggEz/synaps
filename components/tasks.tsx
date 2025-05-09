@@ -123,7 +123,9 @@ const Tasks = () => {
               key={task.id} 
               className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow border border-slate-200 flex flex-col justify-between min-h-[100px]"
             >
+              <button>=</button>
               <p className="text-sm text-slate-800 font-medium">{task.title}</p>
+          
             </li>
           ))}
         </ul>
