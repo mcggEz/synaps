@@ -10,6 +10,9 @@ type Task = {
   title: string
   project_id: string
   user_email: string
+  date_created: string
+  deadline: string | null
+  completed: boolean
 }
 
 const Tasks = () => {
@@ -20,6 +23,7 @@ const Tasks = () => {
   const [tasks, setTasks] = useState<Task[]>([])
   const [newTitle, setNewTitle] = useState('')
   const [loading, setLoading] = useState(false)
+  const [openTaskId, setOpenTaskId] = useState<string | null>(null)
 
   // Fetch tasks when project or user changes
   useEffect(() => {
@@ -80,6 +84,100 @@ const Tasks = () => {
     }
   }
 
+  const handleDeleteTask = async (taskId: string) => {
+    if (!user) return;
+    try {
+      const res = await fetch('/api/delete-task', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: taskId,
+          user_email: user.email,
+        }),
+      })
+      if (res.ok) {
+        setTasks((prev) => prev.filter((task) => task.id !== taskId))
+      } else {
+        console.error('Delete task failed')
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const handleUpdateTask = async (taskId: string) => {
+    if (!user) return;
+    const newTitle = prompt('Enter new task title:')
+    if (!newTitle) return
+
+    try {
+      const res = await fetch('/api/update-task', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: taskId,
+          user_email: user.email,
+          updateData: { title: newTitle },
+        }),
+      })
+      if (res.ok) {
+        setTasks((prev) =>
+          prev.map((task) =>
+            task.id === taskId ? { ...task, title: newTitle } : task
+          )
+        )
+      } else {
+        console.error('Update task failed')
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const handleMarkComplete = async (taskId: string) => {
+    if (!user) return;
+    try {
+      const res = await fetch('/api/update-task', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: taskId,
+          user_email: user.email,
+          updateData: { completed: true },
+        }),
+      });
+      if (res.ok) {
+        setTasks((prev) =>
+          prev.map((task) =>
+            task.id === taskId ? { ...task, completed: true } : task
+          )
+        );
+      } else {
+        console.error('Mark complete failed');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleOpenTaskSettings = (taskId: string) => {
+    // Toggle the task settings menu
+    setOpenTaskId((prev) => (prev === taskId ? null : taskId));
+  }
+
+  const getRAGStatus = (deadline: string | null): string => {
+    if (!deadline) return 'green'; // No deadline, assume green
+
+    const deadlineDate = new Date(deadline);
+    const currentDate = new Date();
+    const timeDiff = deadlineDate.getTime() - currentDate.getTime();
+    const daysDiff = timeDiff / (1000 * 3600 * 24);
+
+    if (daysDiff < 0) return 'red'; // Overdue
+    if (daysDiff <= 3) return 'amber'; // Due soon
+    return 'green'; // Plenty of time
+  };
+
   return (
     <div className="p-4">
       <h3 className="text-lg font-semibold mb-2">Tasks</h3>
@@ -118,16 +216,51 @@ const Tasks = () => {
 
       {tasks.length > 0 && (
         <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
-          {tasks.map((task) => (
-            <li 
-              key={task.id} 
-              className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow border border-slate-200 flex flex-col justify-between min-h-[100px]"
-            >
-              <button>=</button>
-              <p className="text-sm text-slate-800 font-medium">{task.title}</p>
-          
-            </li>
-          ))}
+          {tasks.map((task) => {
+            const ragStatus = getRAGStatus(task.deadline);
+            return (
+              <li 
+                key={task.id} 
+                className={`bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow border border-slate-200 flex flex-col justify-between min-h-[100px] relative ${ragStatus}`}
+              >
+                <div className="flex justify-between items-start">
+                  <p className="text-sm text-slate-800 font-medium">{task.title}</p>
+                  <div className="relative">
+                    <button className="text-gray-500 hover:text-gray-700"
+                    onClick={() => handleOpenTaskSettings(task.id)}>
+                      &#x22EE; {/* Vertical ellipsis */}
+                    </button>
+                    {openTaskId === task.id && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg z-10">
+                        <button
+                          onClick={() => handleUpdateTask(task.id)}
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                        >
+                          Update
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTask(task.id)}
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                        >
+                          Delete
+                        </button>
+                        <button
+                          onClick={() => handleMarkComplete(task.id)}
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                        >
+                          Mark as Done
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <p className="text-sm text-slate-500 mt-2">Created: {new Date(task.date_created).toLocaleDateString()}</p>
+                <p className="text-sm text-slate-500 mt-2">Deadline: {task.deadline ? new Date(task.deadline).toLocaleDateString() : 'No deadline'}</p>
+                <div className={`w-3 h-3 rounded-full ${task.completed ? 'bg-green-500' : 'bg-red-500'}`}></div>
+
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

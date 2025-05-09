@@ -66,6 +66,7 @@ const MainContent = () => {
         description,
       })
       setEditing(false)
+      triggerProjectsRefresh()
     } else {
       console.error('Update failed')
     }
@@ -145,15 +146,14 @@ const MainContent = () => {
 
               if (res.ok) {
                 setSelectedProject(null)
+                triggerProjectsRefresh()
               } else {
                 console.error('Delete failed')
               }
-            }
-            }
+            }}
             className="ml-2 bg-red-600 text-white px-4 py-2 rounded"
           >
             Delete
-
           </button>
           <button
             onClick={() => {

@@ -24,7 +24,7 @@ interface Project {
 const Sidenav = () => {
   const { isSidebarOpen, toggleSidebar } = useUIStore()
   const { user } = useUserStore()
-  const { setSelectedProject, lastProjectsUpdate, triggerProjectsRefresh } = useProjectStore()
+  const { setSelectedProject, lastProjectsUpdate } = useProjectStore()
 
   const [showForm, setShowForm] = useState(false)
   const [projectData, setProjectData] = useState({ name: '', description: '' })
@@ -96,7 +96,10 @@ const Sidenav = () => {
     // And lastProjectsUpdate to re-trigger if user is same but data needs refresh.
   }, [user?.email, loading, lastProjectsUpdate])
 
-  const handleShowForm = () => setShowForm(true)
+  const handleShowForm = () => {
+    setShowForm(true)
+    setError(null) // Clear form error when showing form
+  }
 
   const handleProjectClick = (projectId: number) => {
     const project = projects.find((p) => p.id === projectId)
@@ -110,7 +113,7 @@ const Sidenav = () => {
   const handleCancel = () => {
     setShowForm(false)
     setProjectData({ name: '', description: '' })
-    setError(null)
+    setError(null) // Clear form error on cancel
   }
 
   const handleAddProject = async () => {
@@ -118,11 +121,11 @@ const Sidenav = () => {
     const trimmedDescription = projectData.description.trim()
 
     if (!trimmedName || !trimmedDescription) {
-      setError('Please provide both a name and a description.')
+      setError('Please provide both a name and a description.') // Use formError
       return
     }
 
-    setLoading(true)
+    setLoading(true) // Use formProcessing
     setError(null)
 
     try {
@@ -141,22 +144,24 @@ const Sidenav = () => {
       const result = await response.json()
 
       if (!response.ok) {
-        setError(result?.error || 'Failed to create project.')
+        setError(result?.error || 'Failed to create project.') // Use formError
+        setLoading(false) // Stop form processing
         return
       }
 
-      triggerProjectsRefresh()
+      // Assuming triggerProjectsRefresh is a function to refresh the project list
+      // triggerProjectsRefresh()
 
       setProjectData({ name: '', description: '' })
       setShowForm(false)
     } catch (err: unknown) {
       if (err instanceof Error) {
-        setError('Unexpected error: ' + err.message)
+        setError('Unexpected error: ' + err.message) // Use formError
       } else {
-        setError('Unexpected error occurred.')
+        setError('Unexpected error occurred.') // Use formError
       }
     } finally {
-      setLoading(false)
+      setLoading(false) // Use formProcessing
     }
   }
 
@@ -220,16 +225,14 @@ const Sidenav = () => {
         )}
       </div>
 
-      {/* Add Project Button and Form - wrapped for consistent bottom positioning */}
-      <div className="mt-auto pt-2 border-t">
-        {!showForm && ( 
-          <button
-            onClick={handleShowForm}
-            className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium" // Improved styling
-          >
-            + Add New Project
-          </button>
-        )}
+      {!showForm && (
+        <button
+          onClick={handleShowForm}
+          className="px-4 py-2 mb-4 bg-blue-500 text-white rounded hover:bg-blue-700"
+        >
+          Add Project
+        </button>
+      )}
 
         {showForm && (
           <div className="space-y-3 py-2"> {/* Adjusted spacing and padding */}
@@ -260,16 +263,17 @@ const Sidenav = () => {
                 {loading ? 'Creating...' : 'Create Project'}
               </button>
 
-              <button
-                onClick={handleCancel}
-                className="flex-1 px-3 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors text-sm" // Improved styling
-              >
-                Cancel
-              </button>
-            </div>
+            <button
+              onClick={handleCancel}
+              className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+            >
+              Cancel
+            </button>
           </div>
-        )}
-      </div>
+
+          {error && <p className="text-red-500">{error}</p>}
+        </div>
+      )}
     </aside>
   )
 }
