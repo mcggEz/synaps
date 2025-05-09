@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useUIStore } from '@/store/useUIStore'
 import { useProjectStore } from '@/store/useMainStore'
 import { useUserStore } from '@/store/useUserStore'
+import { useChatbotStore } from '@/store/useChatbotStore'
 
 type Task = {
   id: string
@@ -16,9 +17,11 @@ type Task = {
 }
 
 const Tasks = () => {
-  const selectedProject = useProjectStore((state) => state.selectedProject)
+  const { selectedProject, setSelectedProject, triggerProjectsRefresh } = useProjectStore()
   const user = useUserStore((state) => state.user)
   const toggleChatbot = useUIStore((state) => state.toggleChatbot)
+  const setInputTemplate = useChatbotStore((state) => state.setInputTemplate)
+  
 
   const [tasks, setTasks] = useState<Task[]>([])
   const [newTitle, setNewTitle] = useState('')
@@ -196,19 +199,38 @@ const Tasks = () => {
         >
           Add Task
         </button>
-        <button
-          onClick={toggleChatbot}
-          className="ml-2 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-1 rounded"
-        >
-          Ask Gemini
-        </button>
+    
       </div>
 
       {loading && tasks.length === 0 && (
         <p className="text-slate-500 text-sm mt-4">Loading tasks...</p>
       )}
       {!loading && tasks.length === 0 && selectedProject && (
-        <p className="text-slate-500 text-sm mt-4">No tasks yet for this project. Add one above or ask Gemini!</p>
+        <div>
+             <button
+            onClick={() => {
+              // Create a template with project details
+              const template = `Help me create tasks for this project:
+Project ID: ${selectedProject.id}
+Project Name: ${selectedProject.name}
+Project Description: ${selectedProject.description}
+
+Please suggest some tasks that would be appropriate for this project.`;
+              
+              // Set the template in the store
+              setInputTemplate(template);
+              
+              // Toggle the chatbot
+              toggleChatbot();
+            }}
+            className="ml-2 bg-yellow-600 text-white px-4 py-2 rounded"
+          >
+            Ask Gemini
+          </button> 
+          <p className="text-slate-500 text-sm mt-4">No tasks yet for this project. Add one above or ask Gemini!</p>
+        </div>
+       
+        
       )}
       {!selectedProject && (
          <p className="text-slate-500 text-sm mt-4">Select a project to see its tasks.</p>
@@ -257,7 +279,7 @@ const Tasks = () => {
                 <p className="text-sm text-slate-500 mt-2">Created: {new Date(task.date_created).toLocaleDateString()}</p>
                 <p className="text-sm text-slate-500 mt-2">Deadline: {task.deadline ? new Date(task.deadline).toLocaleDateString() : 'No deadline'}</p>
                 <div className={`w-3 h-3 rounded-full ${task.completed ? 'bg-green-500' : 'bg-red-500'}`}></div>
-
+                    <button></button>
               </li>
             );
           })}

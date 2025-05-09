@@ -155,26 +155,7 @@ const MainContent = () => {
           >
             Delete
           </button>
-          <button
-            onClick={() => {
-              // Create a template with project details
-              const template = `Help me create tasks for this project:
-Project ID: ${selectedProject.id}
-Project Name: ${selectedProject.name}
-Project Description: ${selectedProject.description}
 
-Please suggest some tasks that would be appropriate for this project.`;
-              
-              // Set the template in the store
-              setInputTemplate(template);
-              
-              // Toggle the chatbot
-              toggleChatbot();
-            }}
-            className="ml-2 bg-yellow-600 text-white px-4 py-2 rounded"
-          >
-            Ask Gemini
-          </button>
           <Tasks  />
         
           
