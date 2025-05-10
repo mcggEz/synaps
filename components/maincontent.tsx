@@ -84,21 +84,21 @@ const MainContent = () => {
 
   return (
     <>
-      <h1 className="text-3xl font-bold mb-4">Project:</h1>
+   
 
       {editing ? (
         <>
           <input
-            className="text-2xl font-bold border px-2 py-1 w-full mb-2 rounded"
+            className="text-2xl font-bold px-2 py-1 w-full mb-2 rounded"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
           <p className="text-gray-500 mb-2">Project Details</p>
           <textarea
-            className="text-gray-700 border px-2 py-1 w-full rounded"
+            className="text-gray-700  px-2 py-1 w-full rounded"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            rows={4}
+            rows={2}
           />
           <div className="mt-4 flex gap-2">
             <button
@@ -155,12 +155,13 @@ const MainContent = () => {
           >
             Delete
           </button>
-
-          <Tasks  />
-        
-          
         </>
       )}
+      <Tasks  />
+        
+          
+   
+    
       
     </>
   )
