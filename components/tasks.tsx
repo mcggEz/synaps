@@ -6,6 +6,7 @@ import { useProjectStore } from '@/store/useMainStore'
 import { useUserStore } from '@/store/useUserStore'
 import { useChatbotStore } from '@/store/useChatbotStore'
 
+
 type Task = {
   id: string
   title: string
@@ -25,8 +26,13 @@ const Tasks = () => {
 
   const [tasks, setTasks] = useState<Task[]>([])
   const [newTitle, setNewTitle] = useState('')
+  const [updateTitle, setUpdateTitle] = useState('')
   const [loading, setLoading] = useState(false)
   const [openTaskId, setOpenTaskId] = useState<string | null>(null)
+  const [updatetask, setUpdatetask] = useState(false)
+  const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null)
+  const [originalTitle, setOriginalTitle] = useState('')
+  
 
   // Fetch tasks when project or user changes
   useEffect(() => {
@@ -61,6 +67,48 @@ const Tasks = () => {
     }
     fetchTasks()
   }, [selectedProject, user])
+
+  // Add click outside handler for task settings menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openTaskId) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.task-settings-menu')) {
+          setOpenTaskId(null);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openTaskId]);
+
+  // Existing click outside handler for update form
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (updatetask && updatingTaskId) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.update-input-container')) {
+          // Only update if the title has changed
+          if (updateTitle !== originalTitle) {
+            handleUpdateTask(updatingTaskId);
+          } else {
+            // Reset states if no changes
+            setUpdatetask(false);
+            setUpdatingTaskId(null);
+            setUpdateTitle('');
+          }
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [updatetask, updatingTaskId, updateTitle, originalTitle]);
 
   // Handler to add a new task
   const handleAddTask = async () => {
@@ -110,8 +158,8 @@ const Tasks = () => {
 
   const handleUpdateTask = async (taskId: string) => {
     if (!user) return;
-    const newTitle = prompt('Enter new task title:')
-    if (!newTitle) return
+
+    if (!updateTitle) return
 
     try {
       const res = await fetch('/api/update-task', {
@@ -120,15 +168,18 @@ const Tasks = () => {
         body: JSON.stringify({
           id: taskId,
           user_email: user.email,
-          updateData: { title: newTitle },
+          updateData: { title: updateTitle },
         }),
       })
       if (res.ok) {
         setTasks((prev) =>
           prev.map((task) =>
-            task.id === taskId ? { ...task, title: newTitle } : task
+            task.id === taskId ? { ...task, title: updateTitle } : task
           )
         )
+        setUpdatetask(false)
+        setUpdatingTaskId(null)
+        setUpdateTitle('')
       } else {
         console.error('Update task failed')
       }
@@ -166,6 +217,17 @@ const Tasks = () => {
   const handleOpenTaskSettings = (taskId: string) => {
     // Toggle the task settings menu
     setOpenTaskId((prev) => (prev === taskId ? null : taskId));
+  }
+
+  const handleOpenUpdateTask = (taskId: string) => {
+    const task = tasks.find(task => task.id === taskId);
+    if (task) {
+      setOpenTaskId(taskId);
+      setUpdatetask(true);
+      setUpdatingTaskId(taskId);
+      setUpdateTitle(task.title);
+      setOriginalTitle(task.title); // Store original title for comparison
+    }
   }
 
   const getRAGStatus = (deadline: string | null): string => {
@@ -246,16 +308,33 @@ Please suggest some tasks that would be appropriate for this project.`;
                 className={`bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow border border-slate-200 flex flex-col justify-between min-h-[100px] relative ${ragStatus}`}
               >
                 <div className="flex justify-between items-start">
-                  <p className="text-sm text-slate-800 font-medium">{task.title}</p>
+                  <div className="flex-1">
+                    {updatetask && updatingTaskId === task.id ? (
+                      <div className="update-input-container w-full">
+                        <textarea 
+                          value={updateTitle} 
+                          onChange={(e) => setUpdateTitle(e.target.value)}
+                          className="text-sm text-slate-800 font-medium border rounded px-2 py-1 w-full min-h-[60px] resize-none"
+                          autoFocus
+                        />
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-800 font-medium">{task.title}</p>
+                    )}
+                    <p className="text-sm text-slate-500 mt-2">Created: {new Date(task.date_created).toLocaleDateString()}</p>
+                    <p className="text-sm text-slate-500 mt-2">Deadline: {task.deadline ? new Date(task.deadline).toLocaleDateString() : 'No deadline'}</p>
+                  </div>
                   <div className="relative">
-                    <button className="text-gray-500 hover:text-gray-700"
-                    onClick={() => handleOpenTaskSettings(task.id)}>
+                    <button 
+                      className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full p-1 task-settings-menu"
+                      onClick={() => handleOpenTaskSettings(task.id)}
+                    >
                       &#x22EE; {/* Vertical ellipsis */}
                     </button>
                     {openTaskId === task.id && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg z-10">
+                      <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg z-10 task-settings-menu">
                         <button
-                          onClick={() => handleUpdateTask(task.id)}
+                          onClick={() => handleOpenUpdateTask(task.id)}
                           className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
                         >
                           Update
@@ -276,10 +355,13 @@ Please suggest some tasks that would be appropriate for this project.`;
                     )}
                   </div>
                 </div>
-                <p className="text-sm text-slate-500 mt-2">Created: {new Date(task.date_created).toLocaleDateString()}</p>
-                <p className="text-sm text-slate-500 mt-2">Deadline: {task.deadline ? new Date(task.deadline).toLocaleDateString() : 'No deadline'}</p>
-                <div className={`w-3 h-3 rounded-full ${task.completed ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                    <button></button>
+                <div className="flex justify-end mt-2">
+                  <div 
+                    className={`w-3 h-3 rounded-full ${
+                      task.completed ? 'bg-green-500' : 'bg-red-500'
+                    }`}
+                  />
+                </div>
               </li>
             );
           })}
