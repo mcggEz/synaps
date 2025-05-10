@@ -355,11 +355,12 @@ Please suggest some tasks that would be appropriate for this project.`;
                     )}
                   </div>
                 </div>
-                <div className="flex justify-end mt-2">
+                <div className="absolute bottom-3 right-3">
                   <div 
                     className={`w-3 h-3 rounded-full ${
                       task.completed ? 'bg-green-500' : 'bg-red-500'
                     }`}
+                    title={task.completed ? 'Completed' : 'Not completed'}
                   />
                 </div>
               </li>
