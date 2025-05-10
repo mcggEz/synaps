@@ -12,14 +12,34 @@ const Settings = () => {
   const modalRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const CONFIRMATION_PHRASE = 'delete-my-account'
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const handleDeactivateAccount = async () => {
     if (confirmationText !== CONFIRMATION_PHRASE) return
-    // TODO: Implement account deactivation logic
-    console.log('Account deactivation requested')
-    setShowModal(false)
-    setConfirmationText('') // Reset confirmation text
-    router.push('/')
+
+    try {
+      const response = await fetch('/api/delete-user', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete account')
+      }
+
+      // Clear any local storage or state
+      localStorage.clear()
+      
+      // Redirect to home page
+      router.push('/')
+    } catch (error) {
+      console.error('Error deleting account:', error)
+    } finally {
+      setShowModal(false)
+      setConfirmationText('')
+    }
   }
 
   // Handle click outside
@@ -155,14 +175,14 @@ const Settings = () => {
               </button>
               <button
                 onClick={handleDeactivateAccount}
-                disabled={confirmationText !== CONFIRMATION_PHRASE}
+                disabled={confirmationText !== CONFIRMATION_PHRASE || isDeleting}
                 className={`px-4 py-2 text-sm font-medium text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors ${
-                  confirmationText === CONFIRMATION_PHRASE
+                  confirmationText === CONFIRMATION_PHRASE && !isDeleting
                     ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
                     : 'bg-red-400 cursor-not-allowed'
                 }`}
               >
-                Deactivate Account
+                {isDeleting ? 'Deleting...' : 'Deactivate Account'}
               </button>
             </div>
           </div>
