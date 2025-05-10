@@ -29,14 +29,12 @@ const Settings = () => {
         throw new Error('Failed to delete account')
       }
 
-      // Clear any local storage or state
       localStorage.clear()
-      
-      // Redirect to home page
       router.push('/')
     } catch (error) {
       console.error('Error deleting account:', error)
     } finally {
+      setIsDeleting(false)
       setShowModal(false)
       setConfirmationText('')
     }
@@ -69,7 +67,10 @@ const Settings = () => {
             <h1 className="text-2xl font-semibold text-gray-900">Settings</h1>
           </div>
 
-       
+          <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900">Dark Mode</h2>
+            <button className='bg-gray-100 px-4 py-2 rounded-md'>Toggle Dark Mode</button>
+          </div>
 
 
          

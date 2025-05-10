@@ -1,5 +1,8 @@
-import { supabase } from '@/lib/supabaseClient'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+
 import { NextResponse } from 'next/server'
+
+import { supabase } from '@/lib/supabaseClient'
 
 export async function DELETE(request: Request) {
   try {
@@ -11,7 +14,7 @@ export async function DELETE(request: Request) {
 
     // Delete user data from your tables first (if any)
     const { error: deleteDataError } = await supabase
-      .from('')
+      .from('your_table_name')
       .delete()
       .eq('user_id', user.id)
 

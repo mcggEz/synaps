@@ -165,15 +165,7 @@ const Sidenav = () => {
     }
   }
 
-  if (!isSidebarOpen) {
-    return (
-      <div className="w-12 h-full bg-gray-100 border-r flex items-center justify-center">
-        <button onClick={toggleSidebar} className="text-gray-500 hover:text-black">
-          ☰
-        </button>
-      </div>
-    )
-  }
+
 
   return (
     <aside className="w-64 p-4 overflow-y-auto border-r bg-white h-full flex flex-col"> {/* Added h-full flex flex-col for better layout consistency */}
