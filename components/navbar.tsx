@@ -57,14 +57,7 @@ const Navbar = () => {
                     Dashboard
                   </Link>
                 </li>
-                <li>
-                  <Link
-                    href="/dashboard/account"
-                    className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 transition-colors duration-150"
-                  >
-                    Account
-                  </Link>
-                </li>
+              
                 <li>
                   <Link
                     href="/dashboard/settings"
