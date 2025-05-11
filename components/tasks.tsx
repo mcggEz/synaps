@@ -87,18 +87,15 @@ const Tasks = () => {
     };
   }, [openTaskId]);
 
-  // Existing click outside handler for update form
+  // Add click outside handler for title update
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (updatetask && updatingTaskId) {
+      if (updatingTaskId) {
         const target = event.target as HTMLElement;
-        if (!target.closest('.update-input-container')) {
-          // Only update if the title has changed
+        if (!target.closest('.title-input-container')) {
           if (updateTitle !== originalTitle) {
             handleUpdateTask(updatingTaskId);
           } else {
-            // Reset states if no changes
-            setUpdatetask(false);
             setUpdatingTaskId(null);
             setUpdateTitle('');
           }
@@ -110,7 +107,7 @@ const Tasks = () => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [updatetask, updatingTaskId, updateTitle, originalTitle]);
+  }, [updatingTaskId, updateTitle, originalTitle]);
 
   // Add click outside handler for deadline update
   useEffect(() => {
@@ -362,17 +359,49 @@ Please suggest some tasks that would be appropriate for this project.`;
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    {updatetask && updatingTaskId === task.id ? (
-                      <div className="update-input-container w-full">
+                    {updatingTaskId === task.id ? (
+                      <div className="title-input-container">
                         <textarea 
                           value={updateTitle} 
                           onChange={(e) => setUpdateTitle(e.target.value)}
                           className="text-sm text-slate-800 font-medium border rounded px-2 py-1 w-full min-h-[60px] resize-none"
                           autoFocus
+                          onFocus={(e) => {
+                            // Move cursor to end of text
+                            const length = e.target.value.length;
+                            e.target.setSelectionRange(length, length);
+                          }}
                         />
                       </div>
                     ) : (
-                      <p className="text-sm text-slate-800 font-medium">{task.title}</p>
+                      <div className="flex items-center gap-2">
+                        <div className="group inline-flex items-center gap-2">
+                          <p 
+                            className="text-sm text-slate-800 font-medium cursor-pointer hover:text-blue-600 transition-colors"
+                            onClick={() => {
+                              setUpdatingTaskId(task.id);
+                              setUpdateTitle(task.title);
+                              setOriginalTitle(task.title);
+                            }}
+                          >
+                            {task.title}
+                          </p>
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            className="h-4 w-4 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" 
+                            fill="none" 
+                            viewBox="0 0 24 24" 
+                            stroke="currentColor"
+                          >
+                            <path 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round" 
+                              strokeWidth={1.5} 
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" 
+                            />
+                          </svg>
+                        </div>
+                      </div>
                     )}
                     <p className="text-sm text-slate-500 mt-2">Created: {new Date(task.date_created).toLocaleDateString()}</p>
                     <div className="flex items-center gap-2 mt-2">
@@ -413,12 +442,6 @@ Please suggest some tasks that would be appropriate for this project.`;
                     </button>
                     {openTaskId === task.id && (
                       <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg z-10 task-settings-menu">
-                        <button
-                          onClick={() => handleOpenUpdateTask(task.id)}
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                        >
-                          Update
-                        </button>
                         <button
                           onClick={() => handleDeleteTask(task.id)}
                           className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
