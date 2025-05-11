@@ -19,8 +19,44 @@ interface Project {
   id: number;
   name: string;
   description: string;
-  // Add other relevant fields as needed
+  created_at: string;
 }
+
+// Helper function to format date
+const formatDate = (dateString: string) => {
+  try {
+    // Handle PostgreSQL timestamp format by removing timezone and microseconds
+    const cleanDateString = dateString.split('+')[0].split('.')[0];
+    const date = new Date(cleanDateString);
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      console.error('Invalid date string:', dateString);
+      return 'Invalid date';
+    }
+
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) {
+      return 'Today';
+    } else if (diffDays === 1) {
+      return 'Yesterday';
+    } else if (diffDays < 7) {
+      return `${diffDays} days ago`;
+    } else {
+      return date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric',
+        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+      });
+    }
+  } catch (error) {
+    console.error('Error formatting date:', error, 'Date string:', dateString);
+    return 'Invalid date';
+  }
+};
 
 const Sidenav = () => {
   const { isSidebarOpen, toggleSidebar } = useUIStore()
@@ -260,6 +296,9 @@ const Sidenav = () => {
                   >
                     <div className="font-medium text-slate-700 group-hover:text-blue-600 truncate">{project.name}</div>
                     <div className="text-sm text-gray-500 truncate">{project.description}</div>
+                    <div className="text-xs text-gray-400 mt-1">
+                      Created {formatDate(project.created_at)}
+                    </div>
                   </li>
                 ))}
               </ul>
