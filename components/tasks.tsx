@@ -32,6 +32,8 @@ const Tasks = () => {
   const [updatetask, setUpdatetask] = useState(false)
   const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null)
   const [originalTitle, setOriginalTitle] = useState('')
+  const [updatingDeadlineId, setUpdatingDeadlineId] = useState<string | null>(null)
+  const [newDeadline, setNewDeadline] = useState<string>('')
   
 
   // Fetch tasks when project or user changes
@@ -109,6 +111,23 @@ const Tasks = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [updatetask, updatingTaskId, updateTitle, originalTitle]);
+
+  // Add click outside handler for deadline update
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (updatingDeadlineId) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.deadline-input-container')) {
+          handleUpdateDeadline(updatingDeadlineId);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [updatingDeadlineId, newDeadline]);
 
   // Handler to add a new task
   const handleAddTask = async () => {
@@ -188,7 +207,7 @@ const Tasks = () => {
     }
   }
 
-  const handleMarkComplete = async (taskId: string) => {
+  const handleMarkComplete = async (taskId: string, completed: boolean) => {
     if (!user) return;
     try {
       const res = await fetch('/api/update-task', {
@@ -197,13 +216,13 @@ const Tasks = () => {
         body: JSON.stringify({
           id: taskId,
           user_email: user.email,
-          updateData: { completed: true },
+          updateData: { completed },
         }),
       });
       if (res.ok) {
         setTasks((prev) =>
           prev.map((task) =>
-            task.id === taskId ? { ...task, completed: true } : task
+            task.id === taskId ? { ...task, completed } : task
           )
         );
       } else {
@@ -242,6 +261,40 @@ const Tasks = () => {
     if (daysDiff <= 3) return 'amber'; // Due soon
     return 'green'; // Plenty of time
   };
+
+  const handleUpdateDeadline = async (taskId: string) => {
+    if (!user) return;
+
+    try {
+      const res = await fetch('/api/update-task', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: taskId,
+          user_email: user.email,
+          updateData: { deadline: newDeadline },
+        }),
+      })
+      if (res.ok) {
+        setTasks((prev) =>
+          prev.map((task) =>
+            task.id === taskId ? { ...task, deadline: newDeadline } : task
+          )
+        )
+        setUpdatingDeadlineId(null)
+        setNewDeadline('')
+      } else {
+        console.error('Update deadline failed')
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const handleOpenDeadlineUpdate = (taskId: string, currentDeadline: string | null) => {
+    setUpdatingDeadlineId(taskId)
+    setNewDeadline(currentDeadline || '')
+  }
 
   return (
     <div className="p-4">
@@ -322,7 +375,34 @@ Please suggest some tasks that would be appropriate for this project.`;
                       <p className="text-sm text-slate-800 font-medium">{task.title}</p>
                     )}
                     <p className="text-sm text-slate-500 mt-2">Created: {new Date(task.date_created).toLocaleDateString()}</p>
-                    <p className="text-sm text-slate-500 mt-2">Deadline: {task.deadline ? new Date(task.deadline).toLocaleDateString() : 'No deadline'}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      {updatingDeadlineId === task.id ? (
+                        <div className="deadline-input-container">
+                          <input
+                            type="date"
+                            value={newDeadline}
+                            onChange={(e) => setNewDeadline(e.target.value)}
+                            className="text-sm text-slate-500 border rounded px-2 py-1"
+                            autoFocus
+                          />
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-sm text-slate-500">
+                            Deadline: {task.deadline ? new Date(task.deadline).toLocaleDateString() : 'No deadline'}
+                          </p>
+                          <button
+                            onClick={() => handleOpenDeadlineUpdate(task.id, task.deadline)}
+                            className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full p-1"
+                            title="Update deadline"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                   <div className="relative">
                     <button 
@@ -345,17 +425,23 @@ Please suggest some tasks that would be appropriate for this project.`;
                         >
                           Delete
                         </button>
-                        <button
-                          onClick={() => handleMarkComplete(task.id)}
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                        >
-                          Mark as Done
-                        </button>
                       </div>
                     )}
                   </div>
                 </div>
-                <div className="flex justify-end mt-2">
+                <div className="flex justify-between items-center mt-5">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={task.completed}
+                      onChange={(e) => handleMarkComplete(task.id, e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                    <span className="ml-2 text-sm font-medium text-gray-700">
+                      {task.completed ? 'Done' : 'To Do'}
+                    </span>
+                  </label>
                   <div 
                     className={`w-2 h-2 rounded-full ${
                       task.completed ? 'bg-green-500' : 'bg-red-500'
