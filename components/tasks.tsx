@@ -315,34 +315,79 @@ const Tasks = () => {
       </div>
 
       {loading && tasks.length === 0 && (
-        <p className="text-slate-500 text-sm mt-4">Loading tasks...</p>
+        <div className="flex flex-col items-center justify-center min-h-[40vh] text-center px-4">
+          <div className="bg-slate-50 rounded-lg p-8 max-w-md w-full border border-slate-200 mt-10">
+            <div className="animate-pulse flex flex-col items-center">
+              <div className="h-12 w-12 bg-slate-200 rounded-full mb-4"></div>
+              <div className="h-4 w-32 bg-slate-200 rounded mb-3"></div>
+              <div className="h-3 w-48 bg-slate-200 rounded mb-6"></div>
+              <div className="space-y-3 w-full">
+                <div className="h-10 bg-slate-200 rounded-lg"></div>
+                <div className="h-10 bg-slate-200 rounded-lg"></div>
+                <div className="h-10 bg-slate-200 rounded-lg"></div>
+              </div>
+            </div>
+            <p className="text-slate-500 text-sm mt-6">Loading your tasks...</p>
+          </div>
+        </div>
       )}
       {!loading && tasks.length === 0 && selectedProject && (
-        <div>
-             <button
-            onClick={() => {
-              // Create a template with project details
-              const template = `Help me create tasks for this project:
+        <div className="flex flex-col items-center justify-center min-h-[40vh] text-center px-4">
+          <div className="bg-slate-50 rounded-lg p-8 max-w-md w-full border border-slate-200 mt-10">
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              className="h-12 w-12 text-slate-400 mx-auto mb-4" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={1.5} 
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" 
+              />
+            </svg>
+            <h3 className="text-lg font-semibold text-slate-700 mb-2">No Tasks Yet</h3>
+            <p className="text-slate-500 mb-6">
+              Get started by adding tasks manually or let Gemini help you create a task list for your project.
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  const template = `Help me create tasks for this project:
 Project ID: ${selectedProject.id}
 Project Name: ${selectedProject.name}
 Project Description: ${selectedProject.description}
 
 Please suggest some tasks that would be appropriate for this project.`;
-              
-              // Set the template in the store
-              setInputTemplate(template);
-              
-              // Toggle the chatbot
-              toggleChatbot();
-            }}
-            className="ml-2 bg-yellow-600 text-white px-4 py-2 rounded"
-          >
-            Ask Gemini
-          </button> 
-          <p className="text-slate-500 text-sm mt-4">No tasks yet for this project. Add one above or ask Gemini!</p>
+                  setInputTemplate(template);
+                  toggleChatbot();
+                }}
+                className="inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-6 py-3 rounded-lg font-medium transition-colors shadow-sm"
+              >
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  className="h-5 w-5" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" 
+                  />
+                </svg>
+                Ask Gemini for Task Suggestions
+              </button>
+              <p className="text-sm text-slate-500">
+                Or add your first task using the input field above
+              </p>
+            </div>
+          </div>
         </div>
-       
-        
       )}
       {!selectedProject && (
          <p className="text-slate-500 text-sm mt-4">Select a project to see its tasks.</p>
@@ -375,32 +420,16 @@ Please suggest some tasks that would be appropriate for this project.`;
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
-                        <div className="group inline-flex items-center gap-2">
-                          <p 
-                            className="text-sm text-slate-800 font-medium cursor-pointer hover:text-blue-600 transition-colors"
-                            onClick={() => {
-                              setUpdatingTaskId(task.id);
-                              setUpdateTitle(task.title);
-                              setOriginalTitle(task.title);
-                            }}
-                          >
-                            {task.title}
-                          </p>
-                          <svg 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            className="h-4 w-4 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" 
-                            fill="none" 
-                            viewBox="0 0 24 24" 
-                            stroke="currentColor"
-                          >
-                            <path 
-                              strokeLinecap="round" 
-                              strokeLinejoin="round" 
-                              strokeWidth={1.5} 
-                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" 
-                            />
-                          </svg>
-                        </div>
+                        <p 
+                          className="text-sm text-slate-800 font-medium cursor-pointer hover:text-blue-600 transition-colors"
+                          onClick={() => {
+                            setUpdatingTaskId(task.id);
+                            setUpdateTitle(task.title);
+                            setOriginalTitle(task.title);
+                          }}
+                        >
+                          {task.title}
+                        </p>
                       </div>
                     )}
                     <p className="text-sm text-slate-500 mt-2">Created: {new Date(task.created_at).toLocaleDateString()}</p>
