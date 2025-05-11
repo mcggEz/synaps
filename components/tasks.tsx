@@ -5,6 +5,7 @@ import { useUIStore } from '@/store/useUIStore'
 import { useProjectStore } from '@/store/useMainStore'
 import { useUserStore } from '@/store/useUserStore'
 import { useChatbotStore } from '@/store/useChatbotStore'
+import { useTaskStore } from '@/store/useTaskStore'
 
 
 type Task = {
@@ -23,8 +24,7 @@ const Tasks = () => {
   const toggleChatbot = useUIStore((state) => state.toggleChatbot)
   const setInputTemplate = useChatbotStore((state) => state.setInputTemplate)
   
-
-  const [tasks, setTasks] = useState<Task[]>([])
+  const { tasks, setTasks, addTask, updateTask, deleteTask, clearTasks } = useTaskStore()
   const [newTitle, setNewTitle] = useState('')
   const [updateTitle, setUpdateTitle] = useState('')
   const [loading, setLoading] = useState(false)
@@ -39,7 +39,7 @@ const Tasks = () => {
   // Fetch tasks when project or user changes
   useEffect(() => {
     if (!selectedProject || !user) {
-      setTasks([])
+      clearTasks()
       return
     }
     setLoading(true);
@@ -58,17 +58,17 @@ const Tasks = () => {
           setTasks(data)
         } else {
           console.error('Failed to fetch tasks')
-          setTasks([])
+          clearTasks()
         }
       } catch (error) {
         console.error('Error fetching tasks:', error);
-        setTasks([]);
+        clearTasks();
       } finally {
         setLoading(false);
       }
     }
     fetchTasks()
-  }, [selectedProject, user])
+  }, [selectedProject, user, setTasks, clearTasks])
 
   // Add click outside handler for task settings menu
   useEffect(() => {
@@ -141,7 +141,7 @@ const Tasks = () => {
       })
       if (res.ok) {
         const data: Task = await res.json()
-        setTasks((prev) => [...prev, data])
+        addTask(data)
         setNewTitle('')
       } else {
         console.error('Add task failed')
@@ -163,7 +163,7 @@ const Tasks = () => {
         }),
       })
       if (res.ok) {
-        setTasks((prev) => prev.filter((task) => task.id !== taskId))
+        deleteTask(taskId)
       } else {
         console.error('Delete task failed')
       }
@@ -188,11 +188,7 @@ const Tasks = () => {
         }),
       })
       if (res.ok) {
-        setTasks((prev) =>
-          prev.map((task) =>
-            task.id === taskId ? { ...task, title: updateTitle } : task
-          )
-        )
+        updateTask(taskId, { title: updateTitle })
         setUpdatetask(false)
         setUpdatingTaskId(null)
         setUpdateTitle('')
@@ -217,11 +213,7 @@ const Tasks = () => {
         }),
       });
       if (res.ok) {
-        setTasks((prev) =>
-          prev.map((task) =>
-            task.id === taskId ? { ...task, completed } : task
-          )
-        );
+        updateTask(taskId, { completed })
       } else {
         console.error('Mark complete failed');
       }
@@ -273,11 +265,7 @@ const Tasks = () => {
         }),
       })
       if (res.ok) {
-        setTasks((prev) =>
-          prev.map((task) =>
-            task.id === taskId ? { ...task, deadline: newDeadline } : task
-          )
-        )
+        updateTask(taskId, { deadline: newDeadline })
         setUpdatingDeadlineId(null)
         setNewDeadline('')
       } else {
@@ -367,7 +355,12 @@ Project ID: ${selectedProject.id}
 Project Name: ${selectedProject.name}
 Project Description: ${selectedProject.description}
 
-Please suggest some tasks that would be appropriate for this project.`;
+Please suggest some tasks that would be appropriate for this project. For example:
+1. Set up development environment
+2. Create database schema
+3. Implement user authentication
+
+Please provide 5-8 tasks based on the project scope.`;
                   setInputTemplate(template);
                   toggleChatbot();
                 }}
