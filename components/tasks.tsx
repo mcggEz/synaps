@@ -12,7 +12,7 @@ type Task = {
   title: string
   project_id: string
   user_email: string
-  date_created: string
+  created_at: string
   deadline: string | null
   completed: boolean
 }
@@ -403,7 +403,7 @@ Please suggest some tasks that would be appropriate for this project.`;
                         </div>
                       </div>
                     )}
-                    <p className="text-sm text-slate-500 mt-2">Created: {new Date(task.date_created).toLocaleDateString()}</p>
+                    <p className="text-sm text-slate-500 mt-2">Created: {new Date(task.created_at).toLocaleDateString()}</p>
                     <div className="flex items-center gap-2 mt-2">
                       {updatingDeadlineId === task.id ? (
                         <div className="deadline-input-container">

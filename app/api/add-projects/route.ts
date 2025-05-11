@@ -18,7 +18,7 @@ export async function POST(req: Request) {
         name,
         description,
         user_email,
-        date_created: new Date().toISOString()
+        created_at: new Date().toISOString()
       })
       .select()
 
