@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useUIStore } from '@/store/useUIStore'
 import { useUserStore } from '@/store/useUserStore'
 import { useProjectStore } from '@/store/useMainStore'
+import Link from 'next/link'
 
 // 1. Skeleton Card Component (Re-added)
 const ProjectSkeletonCard = () => (
@@ -165,108 +166,153 @@ const Sidenav = () => {
     }
   }
 
-
-
   return (
-    <aside className="w-64 p-4 overflow-y-auto border-r bg-white h-full flex flex-col"> {/* Added h-full flex flex-col for better layout consistency */}
-    
-
-      {/* Main content area for projects */}
-      <div className="flex-grow overflow-y-auto mb-4 pr-1"> {/* Added flex-grow and pr-1 for consistency */}
-        <div className='flex justify-between items-center '>
-          <h3 className="text-lg font-semibold text-slate-800">Projects</h3> {/* Changed from Tasks and styled */}
-          <button onClick={toggleSidebar} className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"> {/* Styled close button */}
-            {/* Using a simple '×' for now, can be SVG */}
-            ×
-          </button>
-        </div>
-
-        {/* Display error messages for fetchProjects */}
-        {error && !showForm && (
-          <p className="text-red-500 text-sm mb-2 px-1 py-2 bg-red-50 rounded-md">{error}</p>
-        )}
-
-        {/* Loading state: show skeleton cards */}
-        {loading && projects.length === 0 && (
-          <ul className="space-y-1">
-            {[1, 2, 3].map((n) => <ProjectSkeletonCard key={n} />)}
-          </ul>
-        )}
-
-        {/* No projects and not loading, user is logged in */}
-        {!loading && projects.length === 0 && user && (
-          <p className="text-gray-500 text-sm p-3 text-center">
-            No projects yet. Add one to get started!
-          </p>
-        )}
-        
-       
-        {!loading && projects.length > 0 && (
-          <ul className="space-y-1"> {/* Changed space-y-2 to space-y-1 for denser list if preferred */}
-            {projects.map((project) => (
-              <li
-                key={project.id}
-                className="p-2.5 border-b border-gray-200 hover:bg-slate-100 cursor-pointer rounded-md group" // Improved styling
-                onClick={() => handleProjectClick(project.id)}
-              >
-                <div className="font-medium text-slate-700 group-hover:text-blue-600 truncate">{project.name}</div>
-                <div className="text-sm text-gray-500 truncate">{project.description}</div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      {!showForm && (
-        <button
-          onClick={handleShowForm}
-          className="px-4 py-2 mb-4 bg-blue-500 text-white rounded hover:bg-blue-700"
-        >
-          Add Project
-        </button>
-      )}
-
-        {showForm && (
-          <div className="space-y-3 py-2"> {/* Adjusted spacing and padding */}
-            <h4 className="text-md font-semibold text-slate-700 mb-1">New Project</h4>
-            <input
-              type="text"
-              value={projectData.name}
-              onChange={(e) => setProjectData({ ...projectData, name: e.target.value })}
-              placeholder="Project Name"
-              className="w-full p-2 border border-slate-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm" // Improved styling
-              required
-            />
-            <textarea // Changed input to textarea for description
-              value={projectData.description}
-              onChange={(e) => setProjectData({ ...projectData, description: e.target.value })}
-              placeholder="Short Description"
-              rows={3}
-              className="w-full p-2 border border-slate-300 rounded-md h-20 resize-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm" // Improved styling
-              required
-            />
-            {error && showForm && <p className="text-red-500 text-xs mt-1">{error}</p>} {/* Error specific to form */}
-            <div className="flex space-x-2">
-              <button
-                onClick={handleAddProject}
-                className="flex-1 px-3 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 disabled:opacity-70 transition-colors text-sm" // Improved styling
-                disabled={loading}
-              >
-                {loading ? 'Creating...' : 'Create Project'}
-              </button>
-
-            <button
-              onClick={handleCancel}
-              className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+    <div className={`h-full bg-white border-r border-gray-200 transition-all duration-200 ${isSidebarOpen ? 'w-64' : 'w-14'}`}>
+      {!isSidebarOpen ? (
+        <div className="flex flex-col items-center py-4 space-y-4">
+          <button
+            onClick={toggleSidebar}
+            className="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-50 rounded-md transition-colors"
+            aria-label="Open Sidebar"
+            title="Open Sidebar"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
             >
-              Cancel
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 5l7 7-7 7M5 5l7 7-7 7"
+              />
+            </svg>
+          </button>
+          
+          {loading ? (
+            // Show skeleton loaders when loading
+            Array(3).fill(0).map((_, i) => (
+              <div key={i} className="w-8 h-8 rounded-md bg-gray-200 animate-pulse" />
+            ))
+          ) : projects.length > 0 ? (
+            // Show project icons
+            projects.map((project) => (
+              <button
+                key={project.id}
+                onClick={() => handleProjectClick(project.id)}
+                className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-colors group relative"
+                title={project.name}
+              >
+                <span className="text-sm font-medium group-hover:text-blue-600">
+                  {project.name.charAt(0).toUpperCase()}
+                </span>
+                {/* Tooltip */}
+                <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                  {project.name}
+                </div>
+              </button>
+            ))
+          ) : (
+            // Show empty state
+            <div className="text-gray-400 text-xs text-center px-2">
+              No projects
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="p-4 h-full flex flex-col">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-slate-800">Projects</h3>
+            <button onClick={toggleSidebar} className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+              </svg>
             </button>
           </div>
 
-          {error && <p className="text-red-500">{error}</p>}
+          <div className="flex-grow overflow-y-auto mb-4 pr-1">
+            {error && !showForm && (
+              <p className="text-red-500 text-sm mb-2 px-1 py-2 bg-red-50 rounded-md">{error}</p>
+            )}
+
+            {loading && projects.length === 0 && (
+              <ul className="space-y-1">
+                {[1, 2, 3].map((n) => <ProjectSkeletonCard key={n} />)}
+              </ul>
+            )}
+
+            {!loading && projects.length === 0 && user && (
+              <p className="text-gray-500 text-sm p-3 text-center">
+                No projects yet. Add one to get started!
+              </p>
+            )}
+            
+            {!loading && projects.length > 0 && (
+              <ul className="space-y-1">
+                {projects.map((project) => (
+                  <li
+                    key={project.id}
+                    className="p-2.5 border-b border-gray-200 hover:bg-slate-100 cursor-pointer rounded-md group"
+                    onClick={() => handleProjectClick(project.id)}
+                  >
+                    <div className="font-medium text-slate-700 group-hover:text-blue-600 truncate">{project.name}</div>
+                    <div className="text-sm text-gray-500 truncate">{project.description}</div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {!showForm ? (
+            <button
+              onClick={handleShowForm}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700 transition-colors"
+            >
+              Add Project
+            </button>
+          ) : (
+            <div className="space-y-3 py-2">
+              <h4 className="text-md font-semibold text-slate-700 mb-1">New Project</h4>
+              <input
+                type="text"
+                value={projectData.name}
+                onChange={(e) => setProjectData({ ...projectData, name: e.target.value })}
+                placeholder="Project Name"
+                className="w-full p-2 border border-slate-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                required
+              />
+              <textarea
+                value={projectData.description}
+                onChange={(e) => setProjectData({ ...projectData, description: e.target.value })}
+                placeholder="Short Description"
+                rows={3}
+                className="w-full p-2 border border-slate-300 rounded-md h-20 resize-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                required
+              />
+              {error && showForm && <p className="text-red-500 text-xs mt-1">{error}</p>}
+              <div className="flex space-x-2">
+                <button
+                  onClick={handleAddProject}
+                  className="flex-1 px-3 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 disabled:opacity-70 transition-colors text-sm"
+                  disabled={loading}
+                >
+                  {loading ? 'Creating...' : 'Create Project'}
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
-    </aside>
+    </div>
   )
 }
 

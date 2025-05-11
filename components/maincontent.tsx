@@ -86,31 +86,7 @@ const MainContent = () => {
 
   return (
     <div className="relative">
-      {/* Sidebar Toggle Button - Only show when sidebar is closed */}
-      {!isSidebarOpen && (
-        <button
-          onClick={toggleSidebar}
-          className="fixed top-20 left-4 z-50 p-2 bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 border border-gray-200 hover:bg-gray-50"
-          aria-label="Toggle Sidebar"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6 text-gray-600"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 6h16M4 12h16M4 18h16"
-            />
-          </svg>
-        </button>
-      )}
-
-      <div> {/* Increased padding to account for both nav and button */}
+      <div>
         {editing ? (
           <>
             <input
