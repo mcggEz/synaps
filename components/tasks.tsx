@@ -315,20 +315,27 @@ const Tasks = () => {
       </div>
 
       {loading && tasks.length === 0 && (
-        <div className="flex flex-col items-center justify-center min-h-[40vh] text-center px-4">
-          <div className="bg-slate-50 rounded-lg p-8 max-w-md w-full border border-slate-200 mt-10">
-            <div className="animate-pulse flex flex-col items-center">
-              <div className="h-12 w-12 bg-slate-200 rounded-full mb-4"></div>
-              <div className="h-4 w-32 bg-slate-200 rounded mb-3"></div>
-              <div className="h-3 w-48 bg-slate-200 rounded mb-6"></div>
-              <div className="space-y-3 w-full">
-                <div className="h-10 bg-slate-200 rounded-lg"></div>
-                <div className="h-10 bg-slate-200 rounded-lg"></div>
-                <div className="h-10 bg-slate-200 rounded-lg"></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
+          {[...Array(8)].map((_, index) => (
+            <div key={index} className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 animate-pulse">
+              <div className="space-y-3">
+                {/* Title skeleton */}
+                <div className="h-4 bg-slate-200 rounded w-3/4"></div>
+                
+                {/* Created date skeleton */}
+                <div className="h-3 bg-slate-200 rounded w-1/2"></div>
+                
+                {/* Deadline skeleton */}
+                <div className="h-3 bg-slate-200 rounded w-2/3"></div>
+                
+                {/* Bottom section skeleton */}
+                <div className="flex justify-between items-center pt-4">
+                  <div className="h-5 bg-slate-200 rounded w-16"></div>
+                  <div className="h-2 w-2 bg-slate-200 rounded-full"></div>
+                </div>
               </div>
             </div>
-            <p className="text-slate-500 text-sm mt-6">Loading your tasks...</p>
-          </div>
+          ))}
         </div>
       )}
       {!loading && tasks.length === 0 && selectedProject && (
@@ -510,3 +517,4 @@ Please suggest some tasks that would be appropriate for this project.`;
 }
 
 export default Tasks
+
