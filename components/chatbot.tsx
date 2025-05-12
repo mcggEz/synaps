@@ -1,13 +1,12 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
 import { useChatbotStore } from '@/store/useChatbotStore';
 import { useProjectStore } from '@/store/useMainStore';
 import { useUserStore } from '@/store/useUserStore';
 import { useTaskStore } from '@/store/useTaskStore';
+import { useChatHistoryStore } from '@/store/useChatHistoryStore';
 
 export default function Chatbot() {
-  const [messages, setMessages] = useState<{ sender: 'user' | 'bot'; text: string }[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [extractedTasks, setExtractedTasks] = useState<{ title: string; deadline: string | null }[]>([]);
@@ -18,26 +17,51 @@ export default function Chatbot() {
   const { selectedProject } = useProjectStore();
   const { user } = useUserStore();
   const { addTask } = useTaskStore();
+  const { chatHistory, addMessage, getProjectHistory, clearProjectHistory } = useChatHistoryStore();
+
+  // Load chat history when project changes
+  useEffect(() => {
+    if (selectedProject && user) {
+      loadChatHistory();
+    }
+  }, [selectedProject?.id]);
+
+  const loadChatHistory = async () => {
+    if (!selectedProject || !user) return;
+
+    try {
+      const response = await fetch(`/api/chat-history?project_id=${selectedProject.id}&user_email=${user.email}`);
+      if (response.ok) {
+        const data = await response.json();
+        // Clear existing history for this project
+        clearProjectHistory(selectedProject.id);
+        // Add all messages to the store
+        data.forEach((msg: any) => {
+          addMessage(selectedProject.id, {
+            sender: msg.sender,
+            text: msg.text,
+            timestamp: msg.timestamp
+          });
+        });
+      }
+    } catch (error) {
+      console.error('Error loading chat history:', error);
+    }
+  };
 
   useEffect(() => {
-    // Autofill the input field with the stored template (if any)
     if (inputTemplate) {
       setInput(inputTemplate);
-      // Set flag to auto-send after state update
       autoSendRef.current = true;
-      // Clear the template after setting it
       setInputTemplate('');
     }
   }, [inputTemplate, setInputTemplate]);
 
-  // Effect to handle auto-sending
   useEffect(() => {
     if (autoSendRef.current && input) {
-      const templateMessage = input; // Capture the template content
-      autoSendRef.current = false; // Reset the flag
-      // Send the template, marking it as the initial auto-send interaction
-      // where both user prompt and bot's direct response should be hidden from chat log
-      sendMessage(templateMessage, true); 
+      const templateMessage = input;
+      autoSendRef.current = false;
+      sendMessage(templateMessage, true);
     }
   }, [input]);
 
@@ -64,88 +88,147 @@ export default function Chatbot() {
     setAddingTasks(true);
     
     try {
-      // Transform tasks to ensure deadline is properly formatted
       const tasksToAdd = extractedTasks.map(task => ({
         title: task.title,
         deadline: task.deadline
       }));
-
-      console.log('Sending tasks to API:', {
-        project_id: selectedProject.id,
-        user_email: user.email,
-        tasks: tasksToAdd
+      
+      const res = await fetch('/api/add-multiple-tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          project_id: selectedProject.id,
+          user_email: user.email,
+          tasks: tasksToAdd
+        })
       });
       
-      const res = await axios.post('/api/add-multiple-tasks', {
-        project_id: selectedProject.id,
-        user_email: user.email,
-        tasks: tasksToAdd
-      });
-      
-      console.log('API response:', res.data);
-      
-      if (res.status === 200) {
-        // Add tasks to Zustand store
-        if (res.data.data) {
-          res.data.data.forEach((task: any) => {
+      if (res.ok) {
+        const data = await res.json();
+        if (data.data) {
+          data.data.forEach((task: any) => {
             addTask(task);
           });
         }
 
-        setMessages(prev => [
-          ...prev,
-          {
-            sender: 'bot',
-            text: `✅ Successfully added ${extractedTasks.length} tasks to your project!`
-          }
-        ]);
+        const successMessage = {
+          sender: 'bot' as const,
+          text: `✅ Successfully added ${extractedTasks.length} tasks to your project!`,
+          timestamp: new Date().toISOString()
+        };
+
+        addMessage(selectedProject.id, successMessage);
+        await fetch('/api/chat-history', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            project_id: selectedProject.id,
+            user_email: user.email,
+            message: successMessage
+          })
+        });
+
         setExtractedTasks([]);
       }
     } catch (error: any) {
       console.error('Error adding tasks:', error);
-      const errorMessage = error.response?.data?.error || error.message || 'Something went wrong';
+      const errorMessage = error.message || 'Something went wrong';
       
-      setMessages(prev => [
-        ...prev,
-        {
-          sender: 'bot',
-          text: `Error adding tasks: ${errorMessage}`
-        }
-      ]);
+      const errorMsg = {
+        sender: 'bot' as const,
+        text: `Error adding tasks: ${errorMessage}`,
+        timestamp: new Date().toISOString()
+      };
+
+      addMessage(selectedProject.id, errorMsg);
+      await fetch('/api/chat-history', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          project_id: selectedProject.id,
+          user_email: user.email,
+          message: errorMsg
+        })
+      });
     } finally {
       setAddingTasks(false);
     }
   };
 
   const sendMessage = async (messageContent: string = input, isInitialAutoSend: boolean = false) => {
-    if (!messageContent.trim()) return;
+    if (!messageContent.trim() || !selectedProject || !user) return;
 
-    // Only add the user's message to the UI if it's NOT the initial auto-send
+    const userMessage = {
+      sender: 'user' as const,
+      text: messageContent,
+      timestamp: new Date().toISOString()
+    };
+
     if (!isInitialAutoSend) {
-      const userMessage: { sender: 'user' | 'bot'; text: string } = { sender: 'user', text: messageContent };
-      setMessages(prev => [...prev, userMessage]);
+      addMessage(selectedProject.id, userMessage);
+      await fetch('/api/chat-history', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          project_id: selectedProject.id,
+          user_email: user.email,
+          message: userMessage
+        })
+      });
     }
 
-    // Clear the input field if the messageContent was what's currently in the input
-    // This handles both auto-sent templates and user-typed messages.
     if (messageContent === input) {
       setInput('');
     }
     
     setLoading(true);
-    setExtractedTasks([]); // Clear previous tasks when a new message is sent
+    setExtractedTasks([]);
 
     try {
-      const res = await axios.post('/api/gemini', { message: messageContent });
-      const botResponseText = res.data.text;
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: messageContent })
+      });
 
-      // Only add the bot's direct response to the UI if it's NOT the initial auto-send
+      if (!res.ok) {
+        throw new Error('Failed to get response from Gemini');
+      }
+
+      const data = await res.json();
+      const botResponseText = data.text;
+
       if (!isInitialAutoSend) {
-        const botMessage: { sender: 'user' | 'bot'; text: string } = { sender: 'bot', text: botResponseText };
-        setMessages(prev => [...prev, botMessage]);
+        const botMessage = {
+          sender: 'bot' as const,
+          text: botResponseText,
+          timestamp: new Date().toISOString()
+        };
+
+        addMessage(selectedProject.id, botMessage);
+        await fetch('/api/chat-history', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            project_id: selectedProject.id,
+            user_email: user.email,
+            message: botMessage
+          })
+        });
       }
       
-      // Always extract potential tasks from the bot's response if the prompt was about tasks
       if (messageContent.toLowerCase().includes('task') && selectedProject) {
         const tasks = extractTasksFromResponse(botResponseText);
         if (tasks.length > 0) {
@@ -154,19 +237,32 @@ export default function Chatbot() {
       }
     } catch (error: any) {
       console.error('Error sending message or processing response:', error);
-      const errorMessageText = `Error: ${error?.response?.data?.error || error?.message || 'Something went wrong.'}`;
-      // Always show error messages in the chat
-      setMessages(prev => [
-        ...prev,
-        {
-          sender: 'bot',
-          text: errorMessageText,
+      const errorMessageText = `Error: ${error.message || 'Something went wrong.'}`;
+      
+      const errorMsg = {
+        sender: 'bot' as const,
+        text: errorMessageText,
+        timestamp: new Date().toISOString()
+      };
+
+      addMessage(selectedProject.id, errorMsg);
+      await fetch('/api/chat-history', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      ]);
+        body: JSON.stringify({
+          project_id: selectedProject.id,
+          user_email: user.email,
+          message: errorMsg
+        })
+      });
     } finally {
       setLoading(false);
     }
-  }
+  };
+
+  const currentMessages = selectedProject ? getProjectHistory(selectedProject.id) : [];
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] w-[400px] bg-white shadow-lg border border-gray-100">
@@ -187,7 +283,7 @@ export default function Chatbot() {
 
       {/* Messages Container */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((msg, i) => (
+        {currentMessages.map((msg, i) => (
           <div 
             key={i} 
             className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}

@@ -104,7 +104,22 @@ const MainContent = () => {
   }, [editingTitle, editingDescription, name, description]);
 
   if (!isStoreHydrated) {
-    return <p>Loading project details...</p>
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+        <div className="bg-white rounded-lg p-8 max-w-md w-full border border-gray-100">
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative w-12 h-12">
+              <div className="absolute inset-0 border-4 border-gray-100 rounded-full"></div>
+              <div className="absolute inset-0 border-4 border-gray-300 rounded-full animate-spin border-t-transparent"></div>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Loading Project Details</h3>
+              <p className="text-gray-500">Please wait while we load your project information...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (!selectedProject) {

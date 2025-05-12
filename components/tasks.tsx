@@ -22,6 +22,7 @@ const Tasks = () => {
   const { selectedProject, setSelectedProject, triggerProjectsRefresh } = useProjectStore()
   const user = useUserStore((state) => state.user)
   const toggleChatbot = useUIStore((state) => state.toggleChatbot)
+  const isChatbotOpen = useUIStore((state) => state.isChatbotOpen)
   const setInputTemplate = useChatbotStore((state) => state.setInputTemplate)
   
   const { tasks, setTasks, addTask, updateTask, deleteTask, clearTasks } = useTaskStore()
@@ -362,7 +363,7 @@ Please suggest some tasks that would be appropriate for this project. For exampl
 
 Please provide 5-8 tasks based on the project scope.`;
                   setInputTemplate(template);
-                  toggleChatbot();
+                  if (!isChatbotOpen) toggleChatbot();
                 }}
                 className="inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-6 py-3 rounded-lg font-medium transition-colors shadow-sm"
               >
