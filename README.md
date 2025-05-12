@@ -34,12 +34,7 @@ A modern project management application featuring an AI-powered task assistant t
 
 ## Deployment
 
-The application is built to be deployed on Vercel or any platform supporting Next.js applications. Environment variables needed:
-
-- `GEMINI_API_KEY`: For Google Gemini API access
-- `SUPABASE_URL`: Your Supabase project URL
-- `SUPABASE_ANON_KEY`: Your Supabase anonymous key
-
+The application is deployed on Vercel.
 
 ## Usage
 
@@ -48,8 +43,3 @@ The application is built to be deployed on Vercel or any platform supporting Nex
 3. **Generate Tasks**: Use the AI assistant to suggest tasks based on your project
 4. **Manage Tasks**: Add, edit, or complete tasks as your project progresses
 5. **Track Progress**: Monitor project progress through task completion
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
