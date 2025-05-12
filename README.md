@@ -1,34 +1,55 @@
 # synaps
 
-This project is a conversational chatbot application that leverages the Gemini API to provide intelligent and context-aware responses. The chatbot is designed to handle user queries, maintain conversation context, and extract tasks from responses.
+A modern project management application featuring an AI-powered task assistant that leverages the Gemini API. Synaps helps you organize projects and automatically generate tasks through natural language conversations.
 
 ## Features
 
-- **Contextual Conversations**: Maintains conversation history to provide context-aware responses.
-- **Task Extraction**: Automatically extracts tasks from the chatbot's responses.
-- **Project Integration**: Allows users to add extracted tasks to their projects.
-- **Responsive UI**: Built with a user-friendly interface for seamless interaction.
+- **AI-Powered Task Generation**: Utilizes Google's Gemini API to suggest relevant tasks based on project context
+- **Smart Task Extraction**: Automatically identifies and extracts tasks from AI responses
+- **Project Management**: Create and manage multiple projects with associated tasks
+- **Real-time Chat History**: Maintains conversation context with persistent chat history
+- **Task Management**: Add, edit, delete, and mark tasks as complete
+- **Deadline Tracking**: Set and manage task deadlines
+- **Modern UI**: Responsive and intuitive interface built with Tailwind CSS
+- **Secure Authentication**: User authentication and data protection with Supabase
 
-## Technologies Used
+## Tech Stack
 
-- **React**: Frontend library for building the user interface.
-- **Next.js**: Framework for server-side rendering and API routes.
-- **Tailwind CSS**: Utility-first CSS framework for styling.
-- **Axios**: Promise-based HTTP client for making API requests.
-- **Gemini API**: Used for generating intelligent responses.
-- **Supabase**: For managing user sessions and data storage.
+### Frontend
+- **React 19**: Latest version for building the user interface
+- **Next.js 15.3**: Framework for server-side rendering and API routes
+- **Tailwind CSS**: For utility-first styling
+- **TypeScript**: For type-safe code
+- **Zustand**: For state management
+- **shadcn**: For UI components
+
+### Backend & Services
+- **Supabase**: For authentication and database (with Row Level Security)
+- **Google Gemini API**: For AI-powered conversations and task suggestions
+- **Next.js API Routes**: For serverless backend functionality
+
+### Development Tools
+- **ESLint**: For code linting
+- **TypeScript**: For static type checking
+
+## Deployment
+
+The application is built to be deployed on Vercel or any platform supporting Next.js applications. Environment variables needed:
+
+- `GEMINI_API_KEY`: For Google Gemini API access
+- `SUPABASE_URL`: Your Supabase project URL
+- `SUPABASE_ANON_KEY`: Your Supabase anonymous key
+
 
 ## Usage
 
-- **Chat with the Bot**: Type your message in the input field and press Enter or click Send.
-- **Extract Tasks**: If the response contains tasks, they will be displayed with an option to add them to your project.
-- **Add Tasks to Project**: Click the "Add These Tasks to Project" button to save tasks to your project.
-
+1. **Sign In**: Authenticate using Supabase authentication
+2. **Create Project**: Create a new project with name and description
+3. **Generate Tasks**: Use the AI assistant to suggest tasks based on your project
+4. **Manage Tasks**: Add, edit, or complete tasks as your project progresses
+5. **Track Progress**: Monitor project progress through task completion
 
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-## Contact
-
-For questions or feedback, please contact [your-email@example.com](mailto:your-email@example.com).

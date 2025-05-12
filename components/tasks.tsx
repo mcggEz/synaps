@@ -300,7 +300,7 @@ const Tasks = () => {
         />
         <button
           onClick={handleAddTask}
-          className="bg-amber-400 hover:bg-amber-500 text-black px-4 py-1 rounded-lg shadow"
+          className="bg-gray-300 hover:bg-gray-400 text-black px-4 py-1 rounded-lg shadow"
         >
           Add Task
         </button>
@@ -361,7 +361,7 @@ const Tasks = () => {
                   // Send the template to the Gemini API
                   await sendMessage(template);
                 }}
-                className="inline-flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-medium transition-colors shadow-sm"
+                className="inline-flex items-center justify-center gap-2 bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-3 rounded-lg font-medium transition-colors shadow-sm"
               >
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
@@ -379,7 +379,7 @@ const Tasks = () => {
                 </svg>
                 Ask Gemini for Task Suggestions
               </button>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-900">
                 Or add your first task using the input field above
               </p>
             </div>

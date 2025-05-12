@@ -321,7 +321,7 @@ const Sidenav = () => {
           {!showForm ? (
             <button
               onClick={handleShowForm}
-              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg transition-colors"
+              className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg transition-colors"
             >
               Add Project
             </button>
