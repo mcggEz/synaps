@@ -282,6 +282,10 @@ const Tasks = () => {
     setNewDeadline(currentDeadline || '')
   }
 
+  const sendMessage = async (message: string) => {
+    // Implementation of sendMessage function
+  };
+
   return (
     <div className="p-4">
       <h3 className="text-lg font-semibold mb-2">Tasks</h3>
@@ -350,22 +354,14 @@ const Tasks = () => {
             </p>
             <div className="flex flex-col gap-3">
               <button
-                onClick={() => {
-                  const template = `Help me create tasks for this project:
-Project ID: ${selectedProject.id}
-Project Name: ${selectedProject.name}
-Project Description: ${selectedProject.description}
-
-Please suggest some tasks that would be appropriate for this project. For example:
-1. Set up development environment
-2. Create database schema
-3. Implement user authentication
-
-Please provide 5-8 tasks based on the project scope.`;
+                onClick={async () => {
+                  const template = `Help me create tasks for this project:\nProject ID: ${selectedProject.id}\nProject Name: ${selectedProject.name}\nProject Description: ${selectedProject.description}\n\nPlease suggest some tasks that would be appropriate for this project. For example:\n1. Set up development environment\n2. Create database schema\n3. Implement user authentication\n\nPlease provide 5-8 tasks based on the project scope.`;
                   setInputTemplate(template);
                   if (!isChatbotOpen) toggleChatbot();
+                  // Send the template to the Gemini API
+                  await sendMessage(template);
                 }}
-                className="inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-6 py-3 rounded-lg font-medium transition-colors shadow-sm"
+                className="inline-flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-medium transition-colors shadow-sm"
               >
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 

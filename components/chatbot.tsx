@@ -11,13 +11,14 @@ export default function Chatbot() {
   const [loading, setLoading] = useState(false);
   const [extractedTasks, setExtractedTasks] = useState<{ title: string; deadline: string | null }[]>([]);
   const [addingTasks, setAddingTasks] = useState(false);
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const autoSendRef = useRef(false);
 
   const { inputTemplate, setInputTemplate } = useChatbotStore();
   const { selectedProject } = useProjectStore();
   const { user } = useUserStore();
   const { addTask } = useTaskStore();
-  const { chatHistory, addMessage, getProjectHistory, clearProjectHistory } = useChatHistoryStore();
+  const { chatHistory, addMessage, getProjectHistory, clearProjectHistory, clearAllHistory } = useChatHistoryStore();
 
   // Load chat history when project changes
   useEffect(() => {
@@ -264,20 +265,58 @@ export default function Chatbot() {
 
   const currentMessages = selectedProject ? getProjectHistory(selectedProject.id) : [];
 
+  // Add new function to handle clearing all history
+  const handleClearAllHistory = async () => {
+    if (!user) return;
+    
+    try {
+      const response = await fetch('/api/chat-history/clear-all', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ user_email: user.email })
+      });
+
+      if (response.ok) {
+        clearAllHistory();
+        setNotification({ message: 'All chat history has been cleared', type: 'success' });
+        // Remove notification after 3 seconds
+        setTimeout(() => setNotification(null), 3000);
+      }
+    } catch (error) {
+      console.error('Error clearing chat history:', error);
+      setNotification({ message: 'Failed to clear chat history', type: 'error' });
+      // Remove notification after 3 seconds
+      setTimeout(() => setNotification(null), 3000);
+    }
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] w-[400px] bg-white shadow-lg border border-gray-100">
       {/* Header */}
       <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              </svg>
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-lg font-semibold text-gray-800 truncate">Chat with Gemini</h2>
+              <p className="text-sm text-gray-500 truncate">AI Assistant</p>
+            </div>
+          </div>
+          <button
+            onClick={handleClearAllHistory}
+            className="text-gray-500 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            title="Clear all chat history"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
-          </div>
-          <div className="min-w-0">
-            <h2 className="text-lg font-semibold text-gray-800 truncate">Chat with Gemini</h2>
-            <p className="text-sm text-gray-500 truncate">AI Assistant</p>
-          </div>
+          </button>
         </div>
       </div>
 
@@ -388,6 +427,34 @@ export default function Chatbot() {
           </button>
         </div>
       </div>
+
+      {/* Notification */}
+      {notification && (
+        <div 
+          className={`fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg transition-all duration-300 ease-in-out ${
+            notification.type === 'success' 
+              ? 'bg-green-100 text-green-800 border border-green-200' 
+              : 'bg-red-100 text-red-800 border border-red-200'
+          }`}
+          style={{
+            animation: 'fadeInOut 3s ease-in-out',
+            zIndex: 9999
+          }}
+        >
+          <div className="flex items-center gap-2">
+            {notification.type === 'success' ? (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            )}
+            <span className="text-sm font-medium">{notification.message}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

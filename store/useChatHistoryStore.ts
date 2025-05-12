@@ -16,6 +16,7 @@ interface ChatHistoryState {
   addMessage: (projectId: string, message: Message) => void;
   getProjectHistory: (projectId: string) => Message[];
   clearProjectHistory: (projectId: string) => void;
+  clearAllHistory: () => void;
 }
 
 export const useChatHistoryStore = create<ChatHistoryState>()(
@@ -39,6 +40,9 @@ export const useChatHistoryStore = create<ChatHistoryState>()(
           delete newHistory[projectId];
           return { chatHistory: newHistory };
         });
+      },
+      clearAllHistory: () => {
+        set({ chatHistory: {} });
       },
     }),
     {
