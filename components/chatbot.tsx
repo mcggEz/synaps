@@ -194,12 +194,29 @@ export default function Chatbot() {
     setExtractedTasks([]);
 
     try {
+      // Get the last 5 messages for context
+      const projectMessages = getProjectHistory(selectedProject.id);
+      const recentMessages = projectMessages.slice(-5);
+      const contextMessages = recentMessages.map((msg: { sender: 'user' | 'bot'; text: string }) => ({
+        role: msg.sender === 'user' ? 'user' : 'assistant',
+        content: msg.text
+      }));
+
+      // Add the current message to the context
+      contextMessages.push({
+        role: 'user',
+        content: messageContent
+      });
+
       const res = await fetch('/api/gemini', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message: messageContent })
+        body: JSON.stringify({ 
+          message: messageContent,
+          context: contextMessages
+        })
       });
 
       if (!res.ok) {
