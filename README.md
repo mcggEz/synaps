@@ -2,17 +2,6 @@
 
 A modern project management application featuring an AI-powered task assistant that leverages the Gemini API. Synaps helps you organize projects and automatically generate tasks through natural language conversations.
 
-## Features
-
-- **AI-Powered Task Generation**: Utilizes Google's Gemini API to suggest relevant tasks based on project context
-- **Smart Task Extraction**: Automatically identifies and extracts tasks from AI responses
-- **Project Management**: Create and manage multiple projects with associated tasks
-- **Real-time Chat History**: Maintains conversation context with persistent chat history
-- **Task Management**: Add, edit, delete, and mark tasks as complete
-- **Deadline Tracking**: Set and manage task deadlines
-- **Modern UI**: Responsive and intuitive interface built with Tailwind CSS
-- **Secure Authentication**: User authentication and data protection with Supabase
-
 ## Tech Stack
 
 ### Frontend
@@ -34,12 +23,17 @@ A modern project management application featuring an AI-powered task assistant t
 
 ## Deployment
 
-The application is built to be deployed on Vercel or any platform supporting Next.js applications. Environment variables needed:
+The application is deployed on Vercel.
+## Features
 
-- `GEMINI_API_KEY`: For Google Gemini API access
-- `SUPABASE_URL`: Your Supabase project URL
-- `SUPABASE_ANON_KEY`: Your Supabase anonymous key
-
+- **AI-Powered Task Generation**: Utilizes Google's Gemini API to suggest relevant tasks based on project context
+- **Smart Task Extraction**: Automatically identifies and extracts tasks from AI responses
+- **Project Management**: Create and manage multiple projects with associated tasks
+- **Real-time Chat History**: Maintains conversation context with persistent chat history
+- **Task Management**: Add, edit, delete, and mark tasks as complete
+- **Deadline Tracking**: Set and manage task deadlines
+- **Modern UI**: Responsive and intuitive interface built with Tailwind CSS
+- **Secure Authentication**: User authentication and data protection with Supabase
 
 ## Usage
 
@@ -48,8 +42,3 @@ The application is built to be deployed on Vercel or any platform supporting Nex
 3. **Generate Tasks**: Use the AI assistant to suggest tasks based on your project
 4. **Manage Tasks**: Add, edit, or complete tasks as your project progresses
 5. **Track Progress**: Monitor project progress through task completion
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
