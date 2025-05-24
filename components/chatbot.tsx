@@ -12,6 +12,7 @@ export default function Chatbot() {
   const [extractedTasks, setExtractedTasks] = useState<{ title: string; deadline: string | null }[]>([]);
   const [addingTasks, setAddingTasks] = useState(false);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [isStoreHydrated, setIsStoreHydrated] = useState(false);
   const autoSendRef = useRef(false);
 
   const { inputTemplate, setInputTemplate } = useChatbotStore();
@@ -20,20 +21,35 @@ export default function Chatbot() {
   const { addTask } = useTaskStore();
   const { chatHistory, addMessage, getProjectHistory, clearProjectHistory, clearAllHistory } = useChatHistoryStore();
 
-  // Load chat history when project changes
   useEffect(() => {
-    if (selectedProject && user) {
+    if (useChatHistoryStore.persist.hasHydrated()) {
+      setIsStoreHydrated(true);
+    } else {
+      const unsubscribe = useChatHistoryStore.persist.onFinishHydration(() => {
+        setIsStoreHydrated(true);
+      });
+      return () => {
+        unsubscribe();
+      };
+    }
+  }, []);
+
+  // Load chat history when project changes and store is hydrated
+  useEffect(() => {
+    if (selectedProject && user && isStoreHydrated) {
       loadChatHistory();
     }
-  }, [selectedProject?.id]);
+  }, [selectedProject?.id, isStoreHydrated]);
 
   const loadChatHistory = async () => {
     if (!selectedProject || !user) return;
 
     try {
+      console.log('Loading chat history for project:', selectedProject.id);
       const response = await fetch(`/api/chat-history?project_id=${selectedProject.id}&user_email=${user.email}`);
       if (response.ok) {
         const data = await response.json();
+        console.log('Received chat history:', data);
         // Clear existing history for this project
         clearProjectHistory(selectedProject.id);
         // Add all messages to the store
@@ -44,6 +60,7 @@ export default function Chatbot() {
             timestamp: msg.timestamp
           });
         });
+        console.log('Updated chat history in store:', getProjectHistory(selectedProject.id));
       }
     } catch (error) {
       console.error('Error loading chat history:', error);
@@ -71,7 +88,8 @@ export default function Chatbot() {
     const lines = text.split('\n');
     
     for (const line of lines) {
-      const taskMatch = line.match(/^[•-]\s*(.+?)(?:\s*\(due:\s*([^)]+)\))?$/);
+      // Match both numbered tasks (1. Task name) and bullet points (• Task name)
+      const taskMatch = line.match(/^[•\d+\.]\s*(.+?)(?:\s*\(due:\s*([^)]+)\))?$/);
       if (taskMatch) {
         tasks.push({
           title: taskMatch[1].trim(),
@@ -165,9 +183,21 @@ export default function Chatbot() {
   const sendMessage = async (messageContent: string = input, isInitialAutoSend: boolean = false) => {
     if (!messageContent.trim() || !selectedProject || !user) return;
 
+    // Create a more detailed prompt with project context if it's a task-related query
+    const shouldAddContext = messageContent.toLowerCase().includes('task') || isInitialAutoSend;
+    const enhancedMessage = shouldAddContext ? 
+      `Based on this project:
+Title: ${selectedProject.name}
+Description: ${selectedProject.description}
+
+${messageContent}
+
+Please provide a list of tasks that would help complete this project. For each task, include a suggested deadline if applicable. Format each task as a numbered or bulleted item, and if you suggest a deadline, include it in parentheses like this: "Task name (due: YYYY-MM-DD)".` 
+      : messageContent;
+
     const userMessage = {
       sender: 'user' as const,
-      text: messageContent,
+      text: messageContent, // Store original message in history
       timestamp: new Date().toISOString()
     };
 
@@ -205,7 +235,7 @@ export default function Chatbot() {
       // Add the current message to the context
       contextMessages.push({
         role: 'user',
-        content: messageContent
+        content: enhancedMessage // Use enhanced message for Gemini
       });
 
       const res = await fetch('/api/gemini', {
@@ -214,7 +244,7 @@ export default function Chatbot() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          message: messageContent,
+          message: enhancedMessage,
           context: contextMessages
         })
       });
@@ -226,28 +256,27 @@ export default function Chatbot() {
       const data = await res.json();
       const botResponseText = data.text;
 
-      if (!isInitialAutoSend) {
-        const botMessage = {
-          sender: 'bot' as const,
-          text: botResponseText,
-          timestamp: new Date().toISOString()
-        };
+      const botMessage = {
+        sender: 'bot' as const,
+        text: botResponseText,
+        timestamp: new Date().toISOString()
+      };
 
-        addMessage(selectedProject.id, botMessage);
-        await fetch('/api/chat-history', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            project_id: selectedProject.id,
-            user_email: user.email,
-            message: botMessage
-          })
-        });
-      }
+      addMessage(selectedProject.id, botMessage);
+      await fetch('/api/chat-history', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          project_id: selectedProject.id,
+          user_email: user.email,
+          message: botMessage
+        })
+      });
       
-      if (messageContent.toLowerCase().includes('task') && selectedProject) {
+      // Check for tasks in the response if it's a task-related query
+      if (shouldAddContext) {
         const tasks = extractTasksFromResponse(botResponseText);
         if (tasks.length > 0) {
           setExtractedTasks(tasks);
@@ -281,6 +310,7 @@ export default function Chatbot() {
   };
 
   const currentMessages = selectedProject ? getProjectHistory(selectedProject.id) : [];
+  console.log('Current messages to render:', currentMessages);
 
   // Add new function to handle clearing all history
   const handleClearAllHistory = async () => {
@@ -347,22 +377,47 @@ export default function Chatbot() {
             <div 
               className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
                 msg.sender === 'user' 
-                  ? 'bg-gray-100 text-gray-800 rounded-br-none' 
-                  : 'bg-white text-gray-800 rounded-bl-none shadow-sm border border-gray-100'
+                  ? 'bg-blue-500 text-white rounded-br-none' 
+                  : 'bg-gray-100 text-gray-800 rounded-bl-none'
               }`}
             >
-              <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.text}</p>
+              <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                {msg.text.split('\n').map((line, index) => {
+                  // Check if line is a project detail
+                  if (line.startsWith('Project ID:') || line.startsWith('Project Name:') || line.startsWith('Project Description:')) {
+                    return (
+                      <div key={index} className="mb-1">
+                        <span className="font-medium">{line.split(':')[0]}:</span>
+                        <span className="ml-1">{line.split(':')[1]}</span>
+                      </div>
+                    );
+                  }
+                  // Check if line is a numbered task or bullet point
+                  else if (line.match(/^\d+\./) || line.startsWith('•')) {
+                    return (
+                      <div key={index} className="ml-4 mb-1">
+                        {line}
+                      </div>
+                    );
+                  }
+                  // Regular text
+                  return <div key={index}>{line}</div>;
+                })}
+              </div>
+              <span className="text-xs opacity-70 mt-1 block">
+                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
             </div>
           </div>
         ))}
         
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-white text-gray-800 rounded-2xl rounded-bl-none px-4 py-2.5 shadow-sm border border-gray-100">
+            <div className="bg-gray-100 text-gray-800 rounded-2xl rounded-bl-none px-4 py-2.5">
               <div className="flex gap-2">
-                <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
               </div>
             </div>
           </div>
@@ -399,11 +454,11 @@ export default function Chatbot() {
             <button
               onClick={addTasksToProject}
               disabled={addingTasks}
-              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {addingTasks ? (
                 <>
-                  <svg className="animate-spin h-4 w-4 text-gray-600 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin h-4 w-4 text-white shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
@@ -426,14 +481,14 @@ export default function Chatbot() {
       <div className="p-4 border-t border-gray-100">
         <div className="flex gap-2">
           <input
-            className="flex-1 border border-gray-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-shadow"
+            className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-transparent transition-shadow"
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && sendMessage()}
             placeholder="Type your message..."
           />
           <button
-            className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shrink-0"
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shrink-0"
             onClick={() => sendMessage()}
             disabled={loading || !input.trim()}
           >

@@ -6,6 +6,7 @@ import { useProjectStore } from '@/store/useMainStore'
 import { useUserStore } from '@/store/useUserStore'
 import { useChatbotStore } from '@/store/useChatbotStore'
 import { useTaskStore } from '@/store/useTaskStore'
+import { useChatHistoryStore } from '@/store/useChatHistoryStore'
 
 
 type Task = {
@@ -24,6 +25,7 @@ const Tasks = () => {
   const toggleChatbot = useUIStore((state) => state.toggleChatbot)
   const isChatbotOpen = useUIStore((state) => state.isChatbotOpen)
   const setInputTemplate = useChatbotStore((state) => state.setInputTemplate)
+  const { addMessage } = useChatHistoryStore()
   
   const { tasks, setTasks, addTask, updateTask, deleteTask, clearTasks } = useTaskStore()
   const [newTitle, setNewTitle] = useState('')
@@ -282,8 +284,177 @@ const Tasks = () => {
     setNewDeadline(currentDeadline || '')
   }
 
+  const extractTasksFromResponse = (text: string) => {
+    const tasks: { title: string; deadline: string | null }[] = [];
+    const lines = text.split('\n');
+    
+    for (const line of lines) {
+      // Match numbered tasks (1. Task name) or bullet points (• Task name)
+      const taskMatch = line.match(/^[•\d+\.]\s*(.+?)(?:\s*\(due:\s*([^)]+)\))?$/);
+      if (taskMatch) {
+        tasks.push({
+          title: taskMatch[1].trim(),
+          deadline: taskMatch[2] ? new Date(taskMatch[2]).toISOString() : null
+        });
+      }
+    }
+    
+    return tasks;
+  };
+
   const sendMessage = async (message: string) => {
-    // Implementation of sendMessage function
+    if (!selectedProject || !user) return;
+
+    try {
+      console.log('=== Starting Ask Gemini Flow ===');
+      console.log('1. Current chatbot state:', isChatbotOpen);
+      
+      // Create a more detailed prompt with project context
+      const enhancedMessage = `Based on this project:
+Title: ${selectedProject.name}
+Description: ${selectedProject.description}
+
+${message}
+
+Please provide a list of tasks that would help complete this project. For each task, include a suggested deadline if applicable. Format each task as a numbered or bulleted item, and if you suggest a deadline, include it in parentheses like this: "Task name (due: YYYY-MM-DD)".`;
+
+      // Set the template in the chatbot store
+      console.log('2. Setting input template');
+      setInputTemplate(enhancedMessage);
+      
+      // Open the chatbot if it's not already open
+      console.log('3. Checking if chatbot needs to be opened');
+      if (!isChatbotOpen) {
+        console.log('4. Toggling chatbot open');
+        toggleChatbot();
+      }
+
+      // Add the user message to chat history
+      const userMessage = {
+        sender: 'user' as const,
+        text: enhancedMessage,
+        timestamp: new Date().toISOString()
+      };
+
+      // Add message to store
+      addMessage(selectedProject.id, userMessage);
+
+      // Save message to database
+      await fetch('/api/chat-history', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          project_id: selectedProject.id,
+          user_email: user.email,
+          message: userMessage
+        })
+      });
+
+      // Get response from Gemini API
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          message: enhancedMessage,
+          context: [{
+            role: 'user',
+            content: enhancedMessage
+          }]
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to get response from Gemini');
+      }
+
+      const data = await res.json();
+      const botResponseText = data.text;
+
+      // Add bot response to chat history
+      const botMessage = {
+        sender: 'bot' as const,
+        text: botResponseText,
+        timestamp: new Date().toISOString()
+      };
+
+      addMessage(selectedProject.id, botMessage);
+      await fetch('/api/chat-history', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          project_id: selectedProject.id,
+          user_email: user.email,
+          message: botMessage
+        })
+      });
+
+      // Extract tasks from the response
+      const extractedTasks = extractTasksFromResponse(botResponseText);
+      if (extractedTasks.length > 0) {
+        // Add tasks to the project
+        const tasksRes = await fetch('/api/add-multiple-tasks', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            project_id: selectedProject.id,
+            user_email: user.email,
+            tasks: extractedTasks
+          })
+        });
+
+        if (tasksRes.ok) {
+          const tasksData = await tasksRes.json();
+          if (tasksData.data) {
+            // Add tasks to the local store
+            tasksData.data.forEach((task: any) => {
+              addTask(task);
+            });
+
+            // Add success message to chat
+            const successMessage = {
+              sender: 'bot' as const,
+              text: `✅ Successfully added ${extractedTasks.length} tasks to your project!`,
+              timestamp: new Date().toISOString()
+            };
+
+            addMessage(selectedProject.id, successMessage);
+            await fetch('/api/chat-history', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                project_id: selectedProject.id,
+                user_email: user.email,
+                message: successMessage
+              })
+            });
+          }
+        }
+      }
+      
+      // Add a small delay to ensure the chatbot is open before sending the message
+      setTimeout(() => {
+        console.log('5. Chatbot state after toggle:', isChatbotOpen);
+      }, 100);
+    } catch (error) {
+      console.error('Error in Ask Gemini flow:', error);
+      // Add error message to chat history
+      const errorMessage = {
+        sender: 'bot' as const,
+        text: 'Sorry, I encountered an error while processing your request.',
+        timestamp: new Date().toISOString()
+      };
+      addMessage(selectedProject.id, errorMessage);
+    }
   };
 
   return (
@@ -354,12 +525,9 @@ const Tasks = () => {
             </p>
             <div className="flex flex-col gap-3">
               <button
-                onClick={async () => {
-                  const template = `Help me create tasks for this project:\nProject ID: ${selectedProject.id}\nProject Name: ${selectedProject.name}\nProject Description: ${selectedProject.description}\n\nPlease suggest some tasks that would be appropriate for this project. For example:\n1. Set up development environment\n2. Create database schema\n3. Implement user authentication\n\nPlease provide 5-8 tasks based on the project scope.`;
-                  setInputTemplate(template);
-                  if (!isChatbotOpen) toggleChatbot();
-                  // Send the template to the Gemini API
-                  await sendMessage(template);
+                onClick={() => {
+                  const template = `Help me create tasks for this project`;
+                  sendMessage(template);
                 }}
                 className="inline-flex items-center justify-center gap-2 bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-3 rounded-lg font-medium transition-colors shadow-sm"
               >
