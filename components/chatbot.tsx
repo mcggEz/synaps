@@ -192,7 +192,11 @@ Description: ${selectedProject.description}
 
 ${messageContent}
 
-Please provide a list of tasks that would help complete this project. For each task, include a suggested deadline if applicable. Format each task as a numbered or bulleted item, and if you suggest a deadline, include it in parentheses like this: "Task name (due: YYYY-MM-DD)".` 
+Please provide a list of up to 10 most important tasks that would help complete this project. For each task:
+1. Include a suggested deadline in parentheses like this: "Task name (due: YYYY-MM-DD)"
+2. Format each task as a numbered or bulleted item
+3. Focus on essential tasks that align with the project's goals
+4. Order tasks by priority` 
       : messageContent;
 
     const userMessage = {
@@ -256,31 +260,35 @@ Please provide a list of tasks that would help complete this project. For each t
       const data = await res.json();
       const botResponseText = data.text;
 
-      const botMessage = {
-        sender: 'bot' as const,
-        text: botResponseText,
-        timestamp: new Date().toISOString()
-      };
+      // Only add bot message if this is not an initial auto-send
+      // or if it's an initial auto-send but contains tasks
+      const tasks = shouldAddContext ? extractTasksFromResponse(botResponseText) : [];
+      const shouldShowResponse = !isInitialAutoSend || tasks.length > 0;
 
-      addMessage(selectedProject.id, botMessage);
-      await fetch('/api/chat-history', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          project_id: selectedProject.id,
-          user_email: user.email,
-          message: botMessage
-        })
-      });
+      if (shouldShowResponse) {
+        const botMessage = {
+          sender: 'bot' as const,
+          text: botResponseText,
+          timestamp: new Date().toISOString()
+        };
+
+        addMessage(selectedProject.id, botMessage);
+        await fetch('/api/chat-history', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            project_id: selectedProject.id,
+            user_email: user.email,
+            message: botMessage
+          })
+        });
+      }
       
       // Check for tasks in the response if it's a task-related query
-      if (shouldAddContext) {
-        const tasks = extractTasksFromResponse(botResponseText);
-        if (tasks.length > 0) {
-          setExtractedTasks(tasks);
-        }
+      if (shouldAddContext && tasks.length > 0) {
+        setExtractedTasks(tasks);
       }
     } catch (error: any) {
       console.error('Error sending message or processing response:', error);
