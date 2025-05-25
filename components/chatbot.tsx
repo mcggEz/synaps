@@ -18,7 +18,7 @@ export default function Chatbot() {
   const { inputTemplate, setInputTemplate } = useChatbotStore();
   const { selectedProject } = useProjectStore();
   const { user } = useUserStore();
-  const { addTask } = useTaskStore();
+  const { addTask, deleteTask } = useTaskStore();
   const { chatHistory, addMessage, getProjectHistory, clearProjectHistory, clearAllHistory } = useChatHistoryStore();
 
   useEffect(() => {
@@ -180,11 +180,166 @@ export default function Chatbot() {
     }
   };
 
+  // Add new function to handle task deletion
+  const handleTaskDeletion = async () => {
+    if (!selectedProject || !user) return;
+    
+    try {
+      // Delete all tasks for the project
+      const response = await fetch(`/api/delete-all-tasks`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          project_id: selectedProject.id,
+          user_email: user.email
+        })
+      });
+
+      if (response.ok) {
+        // Add success message to chat
+        const successMessage = {
+          sender: 'bot' as const,
+          text: '✅ Successfully deleted all tasks from your project.',
+          timestamp: new Date().toISOString()
+        };
+
+        addMessage(selectedProject.id, successMessage);
+        await fetch('/api/chat-history', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            project_id: selectedProject.id,
+            user_email: user.email,
+            message: successMessage
+          })
+        });
+      } else {
+        throw new Error('Failed to delete tasks');
+      }
+    } catch (error) {
+      console.error('Error deleting tasks:', error);
+      const errorMessage = {
+        sender: 'bot' as const,
+        text: 'Sorry, I encountered an error while trying to delete the tasks.',
+        timestamp: new Date().toISOString()
+      };
+      addMessage(selectedProject.id, errorMessage);
+    }
+  };
+
+  // Add function to check if message is a delete command
+  const isDeleteCommand = (text: string): boolean => {
+    const deleteKeywords = [
+      'delete all tasks',
+      'remove all tasks',
+      'clear all tasks',
+      'delete tasks',
+      'remove tasks',
+      'clear tasks'
+    ];
+    return deleteKeywords.some(keyword => text.toLowerCase().includes(keyword));
+  };
+
+  // Add new function to parse task references
+  const parseTaskReferences = (text: string): number[] => {
+    const matches = text.match(/@Task(\d+)/g) || [];
+    return matches.map(match => parseInt(match.replace('@Task', '')));
+  };
+
+  // Add function to get task by reference number
+  const getTaskByNumber = (taskNumber: number) => {
+    if (!selectedProject) return null;
+    const projectTasks = getProjectHistory(selectedProject.id);
+    // Convert tasks to numbered list and find the referenced one
+    return projectTasks[taskNumber - 1] || null;
+  };
+
+  // Add function to handle task operations
+  const handleTaskOperation = async (operation: string, taskRefs: number[]) => {
+    if (!selectedProject || !user) return;
+
+    try {
+      const tasks = taskRefs.map(ref => getTaskByNumber(ref)).filter(task => task !== null);
+      
+      if (tasks.length === 0) {
+        const errorMsg = {
+          sender: 'bot' as const,
+          text: 'Could not find the referenced task(s). Please check the task numbers.',
+          timestamp: new Date().toISOString()
+        };
+        addMessage(selectedProject.id, errorMsg);
+        return;
+      }
+
+      // Handle different operations
+      switch (operation.toLowerCase()) {
+        case 'complete':
+        case 'done':
+        case 'finish':
+          // Update task status
+          for (const task of tasks) {
+            await fetch('/api/update-task', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                id: task.id,
+                user_email: user.email,
+                updateData: { status: 'completed' }
+              })
+            });
+          }
+          break;
+
+        case 'delete':
+        case 'remove':
+          // Delete specific tasks
+          for (const task of tasks) {
+            await fetch('/api/delete-task', {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                id: task.id,
+                user_email: user.email
+              })
+            });
+          }
+          break;
+
+        // Add more operations as needed
+      }
+
+      const successMsg = {
+        sender: 'bot' as const,
+        text: `✅ Successfully ${operation}d ${tasks.length} task(s)`,
+        timestamp: new Date().toISOString()
+      };
+      addMessage(selectedProject.id, successMsg);
+
+    } catch (error) {
+      console.error('Error handling task operation:', error);
+      const errorMsg = {
+        sender: 'bot' as const,
+        text: 'Sorry, I encountered an error while processing the task operation.',
+        timestamp: new Date().toISOString()
+      };
+      addMessage(selectedProject.id, errorMsg);
+    }
+  };
+
+  // Modify sendMessage to handle task references
   const sendMessage = async (messageContent: string = input, isInitialAutoSend: boolean = false) => {
     if (!messageContent.trim() || !selectedProject || !user) return;
 
+    // Check for task references
+    const taskRefs = parseTaskReferences(messageContent);
+    const hasTaskRefs = taskRefs.length > 0;
+
     // Create a more detailed prompt with project context if it's a task-related query
-    const shouldAddContext = messageContent.toLowerCase().includes('task') || isInitialAutoSend;
+    const shouldAddContext = messageContent.toLowerCase().includes('task') || isInitialAutoSend || hasTaskRefs;
     const enhancedMessage = shouldAddContext ? 
       `Based on this project:
 Title: ${selectedProject.name}
@@ -192,19 +347,26 @@ Description: ${selectedProject.description}
 
 ${messageContent}
 
-Please provide a list of up to 10 most important tasks that would help complete this project. For each task:
+${hasTaskRefs ? `You can perform operations on tasks using commands like:
+- "complete @TaskX" - mark task as completed
+- "delete @TaskX" - delete the task
+- "update @TaskX deadline to [date]" - update task deadline
+
+Please analyze the user's request and respond with appropriate task operations.` : 
+`Please provide a list of up to 10 most important tasks that would help complete this project. For each task:
 1. Include a suggested deadline in parentheses like this: "Task name (due: YYYY-MM-DD)"
 2. Format each task as a numbered or bulleted item
 3. Focus on essential tasks that align with the project's goals
-4. Order tasks by priority` 
+4. Order tasks by priority`}`
       : messageContent;
 
     const userMessage = {
       sender: 'user' as const,
-      text: messageContent, // Store original message in history
+      text: messageContent,
       timestamp: new Date().toISOString()
     };
 
+    // Add user message to chat history
     if (!isInitialAutoSend) {
       addMessage(selectedProject.id, userMessage);
       await fetch('/api/chat-history', {
@@ -228,18 +390,40 @@ Please provide a list of up to 10 most important tasks that would help complete 
     setExtractedTasks([]);
 
     try {
-      // Get the last 5 messages for context
+      // Get ALL messages for context
       const projectMessages = getProjectHistory(selectedProject.id);
-      const recentMessages = projectMessages.slice(-5);
-      const contextMessages = recentMessages.map((msg: { sender: 'user' | 'bot'; text: string }) => ({
+      console.log('=== Context Debug ===');
+      console.log('1. Project Details:', {
+        name: selectedProject.name,
+        description: selectedProject.description
+      });
+
+      // Convert all messages to Gemini's format
+      const contextMessages = projectMessages.map((msg: { sender: 'user' | 'bot'; text: string }) => ({
         role: msg.sender === 'user' ? 'user' : 'assistant',
         content: msg.text
       }));
 
+      // Add a system message at the start to set the context
+      contextMessages.unshift({
+        role: 'system',
+        content: `You are an AI assistant helping with project management. The current project is:
+Title: ${selectedProject.name}
+Description: ${selectedProject.description}
+
+Maintain context from previous messages and provide relevant, contextual responses.`
+      });
+
       // Add the current message to the context
       contextMessages.push({
         role: 'user',
-        content: enhancedMessage // Use enhanced message for Gemini
+        content: enhancedMessage
+      });
+
+      console.log('4. Final Context Structure:', {
+        totalMessages: contextMessages.length,
+        systemMessage: contextMessages[0].content.substring(0, 100) + '...',
+        messageTypes: contextMessages.map(msg => msg.role)
       });
 
       const res = await fetch('/api/gemini', {
@@ -290,6 +474,26 @@ Please provide a list of up to 10 most important tasks that would help complete 
       if (shouldAddContext && tasks.length > 0) {
         setExtractedTasks(tasks);
       }
+
+      // After getting response from Gemini
+      if (hasTaskRefs) {
+        const response = botResponseText.toLowerCase();
+        
+        // Check for operation keywords in the response
+        const operations = [
+          'complete', 'done', 'finish',
+          'delete', 'remove',
+          'update', 'modify'
+        ];
+
+        for (const op of operations) {
+          if (response.includes(op)) {
+            await handleTaskOperation(op, taskRefs);
+            break;
+          }
+        }
+      }
+
     } catch (error: any) {
       console.error('Error sending message or processing response:', error);
       const errorMessageText = `Error: ${error.message || 'Something went wrong.'}`;
