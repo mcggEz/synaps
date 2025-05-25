@@ -459,7 +459,29 @@ Please provide a list of tasks that would help complete this project. For each t
 
   return (
     <div className="p-4">
-      <h3 className="text-lg font-semibold mb-2">Tasks</h3>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold">Tasks</h3>
+        {tasks.length > 0 && (
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-blue-500 rounded-full transition-all duration-300"
+                  style={{ 
+                    width: `${(tasks.filter(t => t.completed).length / tasks.length) * 100}%` 
+                  }}
+                />
+              </div>
+              <span className="text-sm text-gray-600">
+                {Math.round((tasks.filter(t => t.completed).length / tasks.length) * 100)}% Complete
+              </span>
+            </div>
+            <div className="text-sm text-gray-500">
+              ({tasks.filter(t => t.completed).length}/{tasks.length} tasks)
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="flex gap-2 mb-4">
         <input
