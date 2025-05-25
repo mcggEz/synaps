@@ -6,6 +6,13 @@ import { useUserStore } from '@/store/useUserStore';
 import { useTaskStore } from '@/store/useTaskStore';
 import { useChatHistoryStore } from '@/store/useChatHistoryStore';
 
+interface Task {
+  id: string;
+  sender: 'user' | 'bot';
+  text: string;
+  timestamp: string;
+}
+
 export default function Chatbot() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -251,11 +258,16 @@ export default function Chatbot() {
   };
 
   // Add function to get task by reference number
-  const getTaskByNumber = (taskNumber: number) => {
+  const getTaskByNumber = (taskNumber: number): Task | null => {
     if (!selectedProject) return null;
     const projectTasks = getProjectHistory(selectedProject.id);
-    // Convert tasks to numbered list and find the referenced one
-    return projectTasks[taskNumber - 1] || null;
+    const message = projectTasks[taskNumber - 1];
+    if (!message) return null;
+    
+    return {
+      ...message,
+      id: `task-${taskNumber}` // Generate a unique ID for the task
+    } as Task;
   };
 
   // Add function to handle task operations
@@ -263,7 +275,7 @@ export default function Chatbot() {
     if (!selectedProject || !user) return;
 
     try {
-      const tasks = taskRefs.map(ref => getTaskByNumber(ref)).filter(task => task !== null);
+      const tasks = taskRefs.map(ref => getTaskByNumber(ref)).filter((task): task is Task => task !== null);
       
       if (tasks.length === 0) {
         const errorMsg = {
