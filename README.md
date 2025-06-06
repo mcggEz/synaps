@@ -1,4 +1,4 @@
-# synaps
+# https://synaps-ai.vercel.app
 
 A project management application featuring an AI-powered task assistant that leverages the Gemini API. Synaps helps you organize projects and automatically generate tasks through natural language conversations.
 
