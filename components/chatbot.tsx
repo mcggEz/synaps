@@ -344,14 +344,14 @@ export default function Chatbot() {
 
   // Modify sendMessage to handle task references
   const sendMessage = async (messageContent: string = input, isInitialAutoSend: boolean = false) => {
-    if (!messageContent.trim() || !selectedProject || !user) return;
+    if (!messageContent.trim() || !user) return;
 
     // Check for task references
     const taskRefs = parseTaskReferences(messageContent);
     const hasTaskRefs = taskRefs.length > 0;
 
     // Create a more detailed prompt with project context if it's a task-related query
-    const shouldAddContext = messageContent.toLowerCase().includes('task') || isInitialAutoSend || hasTaskRefs;
+    const shouldAddContext = selectedProject && (messageContent.toLowerCase().includes('task') || isInitialAutoSend || hasTaskRefs);
     const enhancedMessage = shouldAddContext ? 
       `Based on this project:
 Title: ${selectedProject.name}
@@ -380,14 +380,15 @@ Please analyze the user's request and respond with appropriate task operations.`
 
     // Add user message to chat history
     if (!isInitialAutoSend) {
-      addMessage(selectedProject.id, userMessage);
+      const projectId = selectedProject?.id || 'general';
+      addMessage(projectId, userMessage);
       await fetch('/api/chat-history', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          project_id: selectedProject.id,
+          project_id: projectId,
           user_email: user.email,
           message: userMessage
         })
@@ -403,12 +404,15 @@ Please analyze the user's request and respond with appropriate task operations.`
 
     try {
       // Get ALL messages for context
-      const projectMessages = getProjectHistory(selectedProject.id);
+      const projectId = selectedProject?.id || 'general';
+      const projectMessages = getProjectHistory(projectId);
       console.log('=== Context Debug ===');
-      console.log('1. Project Details:', {
-        name: selectedProject.name,
-        description: selectedProject.description
-      });
+      if (selectedProject) {
+        console.log('1. Project Details:', {
+          name: selectedProject.name,
+          description: selectedProject.description
+        });
+      }
 
       // Convert all messages to Gemini's format
       const contextMessages = projectMessages.map((msg: { sender: 'user' | 'bot'; text: string }) => ({
@@ -419,11 +423,19 @@ Please analyze the user's request and respond with appropriate task operations.`
       // Add a system message at the start to set the context
       contextMessages.unshift({
         role: 'system',
-        content: `You are an AI assistant helping with project management. The current project is:
+        content: selectedProject ? 
+          `You are an AI assistant helping with project management. The current project is:
 Title: ${selectedProject.name}
 Description: ${selectedProject.description}
 
-Maintain context from previous messages and provide relevant, contextual responses.`
+Maintain context from previous messages and provide relevant, contextual responses.` :
+          `You are an AI assistant helping with project management. You can help users with:
+1. Creating new projects
+2. Managing tasks
+3. Providing project management advice
+4. Answering questions about project management best practices
+
+Maintain context from previous messages and provide relevant, helpful responses.`
       });
 
       // Add the current message to the context
@@ -468,14 +480,14 @@ Maintain context from previous messages and provide relevant, contextual respons
           timestamp: new Date().toISOString()
         };
 
-        addMessage(selectedProject.id, botMessage);
+        addMessage(projectId, botMessage);
         await fetch('/api/chat-history', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            project_id: selectedProject.id,
+            project_id: projectId,
             user_email: user.email,
             message: botMessage
           })
@@ -488,7 +500,7 @@ Maintain context from previous messages and provide relevant, contextual respons
       }
 
       // After getting response from Gemini
-      if (hasTaskRefs) {
+      if (hasTaskRefs && selectedProject) {
         const response = botResponseText.toLowerCase();
         
         // Check for operation keywords in the response
@@ -506,9 +518,9 @@ Maintain context from previous messages and provide relevant, contextual respons
         }
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error sending message or processing response:', error);
-      const errorMessageText = `Error: ${error.message || 'Something went wrong.'}`;
+      const errorMessageText = `Error: ${error instanceof Error ? error.message : 'Something went wrong.'}`;
       
       const errorMsg = {
         sender: 'bot' as const,
@@ -516,14 +528,15 @@ Maintain context from previous messages and provide relevant, contextual respons
         timestamp: new Date().toISOString()
       };
 
-      addMessage(selectedProject.id, errorMsg);
+      const projectId = selectedProject?.id || 'general';
+      addMessage(projectId, errorMsg);
       await fetch('/api/chat-history', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          project_id: selectedProject.id,
+          project_id: projectId,
           user_email: user.email,
           message: errorMsg
         })
@@ -533,7 +546,7 @@ Maintain context from previous messages and provide relevant, contextual respons
     }
   };
 
-  const currentMessages = selectedProject ? getProjectHistory(selectedProject.id) : [];
+  const currentMessages = selectedProject ? getProjectHistory(selectedProject.id) : getProjectHistory('general');
   console.log('Current messages to render:', currentMessages);
 
   // Add new function to handle clearing all history

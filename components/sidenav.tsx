@@ -158,11 +158,11 @@ const Sidenav = () => {
     const trimmedDescription = projectData.description.trim()
 
     if (!trimmedName || !trimmedDescription) {
-      setError('Please provide both a name and a description.') // Use formError
+      setError('Please provide both a name and a description.')
       return
     }
 
-    setLoading(true) // Use formProcessing
+    setLoading(true)
     setError(null)
 
     try {
@@ -174,31 +174,44 @@ const Sidenav = () => {
         body: JSON.stringify({
           name: trimmedName,
           description: trimmedDescription,
-          user_email: user?.email, // ✅ get it from Zustand
+          user_email: user?.email,
         }),
       })
 
       const result = await response.json()
 
       if (!response.ok) {
-        setError(result?.error || 'Failed to create project.') // Use formError
-        setLoading(false) // Stop form processing
+        setError(result?.error || 'Failed to create project.')
+        setLoading(false)
         return
       }
 
-      // Assuming triggerProjectsRefresh is a function to refresh the project list
-      // triggerProjectsRefresh()
+      // Refresh the project list
+      const projectsResponse = await fetch('/api/read-projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_email: user?.email,
+        }),
+      })
+
+      if (projectsResponse.ok) {
+        const projectsData = await projectsResponse.json()
+        setProjects(projectsData)
+      }
 
       setProjectData({ name: '', description: '' })
       setShowForm(false)
     } catch (err: unknown) {
       if (err instanceof Error) {
-        setError('Unexpected error: ' + err.message) // Use formError
+        setError('Unexpected error: ' + err.message)
       } else {
-        setError('Unexpected error occurred.') // Use formError
+        setError('Unexpected error occurred.')
       }
     } finally {
-      setLoading(false) // Use formProcessing
+      setLoading(false)
     }
   }
 

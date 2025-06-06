@@ -51,7 +51,7 @@ export default function LandingPage() {
 
         {/* Features Grid */}
         <div className="flex-1 flex items-center justify-center px-2 md:px-4 pb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 w-full max-w-4xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 w-full max-w-4xl">
             {/* AI Task Management */}
             <div className="p-4 rounded-xl border border-gray-200 hover:border-gray-300 transition-all duration-300 hover:shadow-lg bg-white">
               <div className="flex items-center gap-3 mb-2">
@@ -79,21 +79,6 @@ export default function LandingPage() {
               </div>
               <p className="text-sm text-gray-600">
                 Track completion with intuitive progress bars
-              </p>
-            </div>
-
-            {/* Smart Task Management */}
-            <div className="p-4 rounded-xl border border-gray-200 hover:border-gray-300 transition-all duration-300 hover:shadow-lg bg-white">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <svg className="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
-                </div>
-                <h3 className="text-base font-semibold">Smart Management</h3>
-              </div>
-              <p className="text-sm text-gray-600">
-                Use @mentions and natural language commands
               </p>
             </div>
           </div>
