@@ -37,11 +37,25 @@ const Tasks = () => {
   const [originalTitle, setOriginalTitle] = useState('')
   const [updatingDeadlineId, setUpdatingDeadlineId] = useState<string | null>(null)
   const [newDeadline, setNewDeadline] = useState<string>('')
+  const [isStoreHydrated, setIsStoreHydrated] = useState(false)
   
+  // Handle store hydration
+  useEffect(() => {
+    if (useTaskStore.persist.hasHydrated()) {
+      setIsStoreHydrated(true);
+    } else {
+      const unsubscribe = useTaskStore.persist.onFinishHydration(() => {
+        setIsStoreHydrated(true);
+      });
+      return () => {
+        unsubscribe();
+      };
+    }
+  }, []);
 
   // Fetch tasks when project or user changes
   useEffect(() => {
-    if (!selectedProject || !user) {
+    if (!selectedProject || !user || !isStoreHydrated) {
       clearTasks()
       return
     }
@@ -71,7 +85,7 @@ const Tasks = () => {
       }
     }
     fetchTasks()
-  }, [selectedProject, user, setTasks, clearTasks])
+  }, [selectedProject, user, setTasks, clearTasks, isStoreHydrated])
 
   // Add click outside handler for task settings menu
   useEffect(() => {
@@ -205,6 +219,10 @@ const Tasks = () => {
 
   const handleMarkComplete = async (taskId: string, completed: boolean) => {
     if (!user) return;
+    
+    // Optimistically update the UI
+    updateTask(taskId, { completed });
+    
     try {
       const res = await fetch('/api/update-task', {
         method: 'PATCH',
@@ -215,12 +233,14 @@ const Tasks = () => {
           updateData: { completed },
         }),
       });
-      if (res.ok) {
-        updateTask(taskId, { completed })
-      } else {
+      if (!res.ok) {
+        // If the request fails, revert the optimistic update
+        updateTask(taskId, { completed: !completed });
         console.error('Mark complete failed');
       }
     } catch (err) {
+      // If there's an error, revert the optimistic update
+      updateTask(taskId, { completed: !completed });
       console.error(err);
     }
   };

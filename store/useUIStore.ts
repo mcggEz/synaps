@@ -14,7 +14,14 @@ export const useUIStore = create<UIState>()(
     (set) => ({
       isSidebarOpen: true,
       isChatbotOpen: false,
-      toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
+      toggleSidebar: () => {
+        // Optimistically update the UI state
+        const currentState = useUIStore.getState();
+        const newState = !currentState.isSidebarOpen;
+        
+        // Immediately update the UI
+        set({ isSidebarOpen: newState });
+      },
       toggleChatbot: () => set((state) => ({ isChatbotOpen: !state.isChatbotOpen })),
       closeAll: () => set((state) => {
         console.log('Closing all panels. Previous state:', { isSidebarOpen: state.isSidebarOpen, isChatbotOpen: state.isChatbotOpen });
