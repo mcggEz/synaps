@@ -1,29 +1,33 @@
 'use client'
-import React, {  useState } from 'react'
-
+import React, { useState } from 'react'
 import LogoutButton from './LogoutButton'
 import { useUserStore } from '@/store/useUserStore'
 import { useUIStore } from '@/store/useUIStore'
 import Link from 'next/link'
+import { Menu } from 'lucide-react'
 
 const Navbar = () => {
   const [openProfile, setOpenProfile] = useState(false)
   const toggleChatbot = useUIStore((state) => state.toggleChatbot)
-
-
-  const { user} = useUserStore()
-
-
+  const { user } = useUserStore()
+  const { toggleSidebar } = useUIStore()
 
   return (
-    <nav className="w-full px-6 py-3 flex items-center justify-between border-b border-gray-200 bg-gradient-to-r from-white to-gray-50 text-black relative">
-      <Link href="/dashboard">
-        <div className="text-xl font-bold tracking-tight text-black hover:text-gray-700 transition-all duration-300">synaps</div>
-      </Link>
+    <nav className="fixed top-0 left-0 right-0 w-full px-6 py-3 flex items-center justify-between border-b border-gray-200 bg-gradient-to-r from-white to-gray-50 text-black z-50">
+      <div className="flex items-center">
+        <button
+          onClick={toggleSidebar}
+          className="p-2 mr-2 text-gray-600 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 md:hidden"
+        >
+          <Menu className="w-6 h-6" />
+          <span className="sr-only">Toggle sidebar</span>
+        </button>
+        <Link href="/dashboard">
+          <div className="text-xl font-bold tracking-tight text-black hover:text-gray-700 transition-all duration-300">synaps</div>
+        </Link>
+      </div>
 
       <div className="flex items-center gap-1 relative">
-    
-
         <div className="relative">
           <button
             onClick={() => setOpenProfile((prev) => !prev)}
@@ -37,7 +41,7 @@ const Navbar = () => {
               />
             ) : (
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-medium">
-                {user?.email?.charAt(0).toUpperCase()}
+                {user?.isGuest ? 'G' : user?.email?.charAt(0).toUpperCase()}
               </div>
             )}
           </button>
@@ -45,7 +49,9 @@ const Navbar = () => {
           {openProfile && (
             <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-10 overflow-hidden">
               <div className="p-3 border-b border-gray-100">
-                <p className="text-sm font-medium text-gray-900">{user?.email}</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {user?.isGuest ? 'Guest User' : user?.email}
+                </p>
               </div>
               <ul className="py-1">
                 <li>
@@ -53,19 +59,19 @@ const Navbar = () => {
                     href="/dashboard"
                     className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
                   >
-               
                     Dashboard
                   </Link>
                 </li>
-                <li>
-                  <Link
-                    href="/dashboard/settings"
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
-                  >
-                   
-                    Settings
-                  </Link>
-                </li>
+                {!user?.isGuest && (
+                  <li>
+                    <Link
+                      href="/dashboard/settings"
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
+                    >
+                      Settings
+                    </Link>
+                  </li>
+                )}
                 <li className="border-t border-gray-100">
                   <LogoutButton />
                 </li>

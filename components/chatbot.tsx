@@ -564,7 +564,7 @@ Maintain context from previous messages and provide relevant, contextual respons
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] w-[400px] bg-white shadow-lg border border-gray-100">
+    <div className="flex flex-col h-full w-full md:w-[400px] bg-white shadow-lg border border-gray-100">
       {/* Header */}
       <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
         <div className="flex items-center justify-between">
@@ -716,7 +716,7 @@ Maintain context from previous messages and provide relevant, contextual respons
             onClick={() => sendMessage()}
             disabled={loading || !input.trim()}
           >
-            <span>Send</span>
+            <span className="hidden sm:inline">Send</span>
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>

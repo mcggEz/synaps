@@ -1,9 +1,29 @@
-'use client;' // This is a client component, so we can use hooks like useState or useEffect
+'use client'
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import LandingPageNavbar from '@/components/LandingPageNavbar';
+import { useUserStore } from '@/store/useUserStore';
 
 export default function LandingPage() {
+  const router = useRouter();
+  const setGuestUser = useUserStore((state) => state.setGuestUser);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleGuestMode = async () => {
+    try {
+      setIsLoading(true);
+      await setGuestUser();
+      router.push('/dashboard');
+    } catch (error) {
+      console.error('Error entering guest mode:', error);
+      alert('Failed to enter guest mode. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <main className="h-screen flex flex-col bg-gradient-to-b from-white to-gray-50">
       <LandingPageNavbar />
@@ -18,11 +38,15 @@ export default function LandingPage() {
           <p className="text-lg md:text-xl text-gray-600 max-w-md mb-6">
             Your intelligent project management companion powered by AI
           </p>
-          <Link href="/dashboard">
-            <button className="w-fit px-6 py-2.5 text-base md:text-lg bg-black text-white rounded-lg hover:bg-gray-800 transition-all duration-300 shadow-lg hover:shadow-xl">
-              Get Started
-            </button>
-          </Link>
+          <button
+            onClick={handleGuestMode}
+            disabled={isLoading}
+            className={`w-fit px-8 py-3 text-base md:text-lg bg-black text-white rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl ${
+              isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-800'
+            }`}
+          >
+            {isLoading ? 'Loading...' : 'Try as Guest'}
+          </button>
         </div>
 
         {/* Features Grid */}

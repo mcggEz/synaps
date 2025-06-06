@@ -1,38 +1,39 @@
 'use client'
-import React, { useState, useRef, useEffect } from 'react'
-import { useRouter} from 'next/navigation'
+import React, { useState, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import Navbar from '@/components/navbar'
 import { useUserStore } from '@/store/useUserStore'
+import { deleteAccount } from '@/app/actions'
 
 const Settings = () => {
   const user = useUserStore((state) => state.user)
-
   const [showModal, setShowModal] = useState(false)
   const [confirmationText, setConfirmationText] = useState('')
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const modalRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const CONFIRMATION_PHRASE = 'delete-my-account'
-  const [isDeleting, setIsDeleting] = useState(false)
 
   const handleDeactivateAccount = async () => {
-    if (confirmationText !== CONFIRMATION_PHRASE) return
+    if (confirmationText !== CONFIRMATION_PHRASE || !user?.id) return
 
     try {
-      const response = await fetch('/api/delete-user', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to delete account')
+      setIsDeleting(true)
+      setError(null)
+      
+      const result = await deleteAccount(user.id)
+      
+      if (!result.success) {
+        throw new Error(result.error)
       }
 
+      // Clear local storage and redirect
       localStorage.clear()
       router.push('/')
     } catch (error) {
       console.error('Error deleting account:', error)
+      setError(error instanceof Error ? error.message : 'Failed to delete account')
     } finally {
       setIsDeleting(false)
       setShowModal(false)
@@ -40,40 +41,12 @@ const Settings = () => {
     }
   }
 
-  // Handle click outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
-        setShowModal(false)
-        setConfirmationText('') // Reset confirmation text when closing
-      }
-    }
-
-    if (showModal) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [showModal])
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <h1 className="text-2xl font-semibold text-gray-900">Settings</h1>
-          </div>
-
-          <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Dark Mode</h2>
-            <button className='bg-gray-100 px-4 py-2 rounded-md'>Toggle Dark Mode</button>
-          </div>
-
-
-         
+      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div className="px-4 py-6 sm:px-0">
+          <div className="bg-white shadow rounded-lg">
             <div className="divide-y divide-gray-200">
               {/* Account Section */}
               <div className="p-6">
@@ -85,7 +58,6 @@ const Settings = () => {
                       {user?.email}
                     </div>
                   </div>
-     
                 </div>
               </div>
 
@@ -110,7 +82,7 @@ const Settings = () => {
                 </div>
               </div>
             </div>
-      
+          </div>
         </div>
       </div>
 
@@ -125,7 +97,8 @@ const Settings = () => {
             <button
               onClick={() => {
                 setShowModal(false)
-                setConfirmationText('') // Reset confirmation text when closing
+                setConfirmationText('')
+                setError(null)
               }}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
             >
@@ -159,13 +132,19 @@ const Settings = () => {
                 placeholder="Type delete-my-account"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
               />
+              {error && (
+                <p className="mt-2 text-sm text-red-600">
+                  {error}
+                </p>
+              )}
             </div>
 
             <div className="flex justify-end space-x-4 mt-6">
               <button
                 onClick={() => {
                   setShowModal(false)
-                  setConfirmationText('') // Reset confirmation text when closing
+                  setConfirmationText('')
+                  setError(null)
                 }}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
               >
